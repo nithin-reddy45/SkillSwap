@@ -1,0 +1,136 @@
+.requests-page {
+  min-height: 100vh;
+  padding: 60px 10%;
+  background: #f8fafc;
+}
+
+.requests-header {
+  margin-bottom: 40px;
+}
+
+.requests-tag {
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.requests-header h1 {
+  margin: 10px 0;
+}
+
+.requests-header p {
+  color: #64748b;
+}
+
+.requests-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 25px;
+}
+
+.request-card {
+  background: white;
+  padding: 25px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+.request-user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.request-avatar {
+  width: 55px;
+  height: 55px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.request-skills {
+  margin-bottom: 20px;
+}
+
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.teach-tag,
+.learn-tag {
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.teach-tag {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.learn-tag {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.request-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.accept-btn,
+.reject-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.accept-btn {
+  border: none;
+  background: #16a34a;
+  color: white;
+}
+
+.reject-btn {
+  border: 1px solid #ef4444;
+  background: white;
+  color: #ef4444;
+}
+
+@media (max-width: 800px) {
+  .requests-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* SUCCESS MESSAGE */
+
+.success-message {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 25px;
+  font-weight: 600;
+}
+
+
+/* DISABLED BUTTONS */
+
+.accept-btn:disabled,
+.reject-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

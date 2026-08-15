@@ -1,0 +1,283 @@
+/* NAVBAR */
+
+.navbar {
+  width: 100%;
+  padding: 18px 8%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+
+  box-sizing: border-box;
+}
+
+/* LOGO */
+
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+/* NAVIGATION LINKS */
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.nav-links a {
+  position: relative;
+  color: #475569;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+
+  transition: 0.2s;
+}
+
+.nav-links a:hover {
+  color: #2563eb;
+}
+
+/* REQUESTS NOTIFICATION */
+
+.requests-link {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -10px;
+  right: -15px;
+
+  min-width: 18px;
+  height: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 5px;
+
+  background: #ef4444;
+  color: white;
+
+  border-radius: 50%;
+
+  font-size: 11px;
+  font-weight: bold;
+
+  line-height: 1;
+}
+
+/* BUTTONS */
+
+.login-btn {
+  padding: 9px 18px;
+
+  border: 1px solid #2563eb;
+  border-radius: 7px;
+
+  background: white;
+  color: #2563eb;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+  text-decoration: none;
+
+  transition: 0.2s;
+}
+
+.login-btn:hover {
+  background: #eff6ff;
+}
+
+.register-btn {
+  padding: 10px 18px;
+
+  border: none;
+  border-radius: 7px;
+
+  background: #2563eb;
+  color: white;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+  text-decoration: none;
+
+  transition: 0.2s;
+}
+
+.register-btn:hover {
+  background: #1d4ed8;
+}
+
+/* RESPONSIVE DESIGN */
+
+@media (max-width: 900px) {
+  .navbar {
+    padding: 15px 5%;
+  }
+
+  .nav-links {
+    gap: 15px;
+  }
+
+  .nav-links a {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 650px) {
+  .navbar {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+  }
+
+  .notification-badge {
+    top: -8px;
+    right: -10px;
+  }
+}
+/* Delete button */
+.delete-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 6px;
+  opacity: 0.7;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+/* ================= MOBILE NAVBAR ================= */
+
+@media (max-width: 650px) {
+
+  .navbar {
+    flex-direction: column;
+    padding: 15px 20px;
+    gap: 15px;
+  }
+
+  .logo {
+    font-size: 24px;
+  }
+
+  .nav-links {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .nav-links a {
+    font-size: 13px;
+  }
+
+  .notification-badge {
+    top: -8px;
+    right: -10px;
+  }
+
+  .message-badge {
+    top: -8px;
+    right: -10px;
+  }
+}
+
+
+/* ================= VERY SMALL SCREENS ================= */
+
+@media (max-width: 400px) {
+
+  .navbar {
+    padding: 12px 10px;
+  }
+
+  .nav-links {
+    gap: 10px;
+  }
+
+  .nav-links a {
+    font-size: 12px;
+  }
+
+  .logo {
+    font-size: 22px;
+  }
+}
+/* MESSAGE NOTIFICATION BADGE */
+
+.messages-link {
+  position: relative;
+}
+
+.message-badge {
+  position: absolute;
+  top: -10px;
+  right: -18px;
+
+  min-width: 18px;
+  height: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 5px;
+
+  background: #ef4444;
+  color: white;
+
+  border-radius: 50%;
+
+  font-size: 11px;
+  font-weight: bold;
+
+  line-height: 1;
+}
+
+
+/* LOGOUT BUTTON */
+
+.nav-logout-btn {
+  padding: 9px 16px;
+
+  border: none;
+  border-radius: 7px;
+
+  background: #ef4444;
+  color: white;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.nav-logout-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}

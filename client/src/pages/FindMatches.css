@@ -1,0 +1,263 @@
+/* ===============================
+   FIND MATCHES PAGE
+================================ */
+
+.matches-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 40px 8%;
+  box-sizing: border-box;
+}
+
+.matches-container {
+  max-width: 1200px;
+  margin: auto;
+}
+
+
+/* ===============================
+   HEADER
+================================ */
+
+.matches-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.matches-header p {
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.matches-header h1 {
+  font-size: 36px;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.matches-header span {
+  color: #64748b;
+  font-size: 16px;
+}
+
+
+/* ===============================
+   ERROR
+================================ */
+
+.matches-error {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+
+/* ===============================
+   NO MATCHES
+================================ */
+
+.no-matches {
+  background: white;
+  padding: 50px;
+  text-align: center;
+  border-radius: 15px;
+  border: 1px solid #e2e8f0;
+}
+
+.no-matches h2 {
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.no-matches p {
+  color: #64748b;
+}
+
+
+/* ===============================
+   MATCHES GRID
+================================ */
+
+.matches-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+}
+
+
+/* ===============================
+   MATCH CARD
+================================ */
+
+.match-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 15px;
+  padding: 25px;
+
+  transition: 0.25s;
+}
+
+.match-card:hover {
+  transform: translateY(-5px);
+
+  box-shadow:
+    0 10px 25px
+    rgba(0, 0, 0, 0.08);
+}
+
+
+/* ===============================
+   AVATAR
+================================ */
+
+.match-avatar {
+  width: 55px;
+  height: 55px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #2563eb;
+  color: white;
+
+  border-radius: 50%;
+
+  font-size: 22px;
+  font-weight: bold;
+
+  margin-bottom: 15px;
+}
+
+
+/* ===============================
+   USER DETAILS
+================================ */
+
+.match-card h2 {
+  font-size: 20px;
+  color: #1e293b;
+  margin-bottom: 5px;
+}
+
+.match-email {
+  color: #64748b;
+  font-size: 13px;
+
+  margin-bottom: 25px;
+
+  word-break: break-word;
+}
+
+
+/* ===============================
+   SKILLS
+================================ */
+
+.match-section {
+  margin-bottom: 22px;
+}
+
+.match-section h3 {
+  font-size: 15px;
+  color: #334155;
+
+  margin-bottom: 10px;
+}
+
+.match-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+
+/* TEACH SKILL */
+
+.teach-skill {
+  background: #dcfce7;
+  color: #15803d;
+
+  padding: 6px 10px;
+
+  border-radius: 20px;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+/* LEARN SKILL */
+
+.learn-skill {
+  background: #dbeafe;
+  color: #2563eb;
+
+  padding: 6px 10px;
+
+  border-radius: 20px;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+/* ===============================
+   CONNECT BUTTON
+================================ */
+
+.connect-btn {
+  width: 100%;
+
+  padding: 11px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: #2563eb;
+  color: white;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.connect-btn:hover {
+  background: #1d4ed8;
+}
+
+
+/* ===============================
+   RESPONSIVE
+================================ */
+
+@media (max-width: 1000px) {
+  .matches-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
+@media (max-width: 650px) {
+  .matches-page {
+    padding: 30px 5%;
+  }
+
+  .matches-header h1 {
+    font-size: 28px;
+  }
+
+  .matches-grid {
+    grid-template-columns: 1fr;
+  }
+}

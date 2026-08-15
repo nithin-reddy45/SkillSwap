@@ -1,0 +1,191 @@
+.home {
+  min-height: 100vh;
+}
+
+/* HERO */
+
+.hero {
+  min-height: 650px;
+  padding: 100px 10%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 80px;
+}
+
+.hero-content {
+  max-width: 650px;
+}
+
+.hero-tag,
+.section-tag,
+.match-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #2563eb;
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  font-size: 64px;
+  line-height: 1.1;
+  margin-bottom: 25px;
+}
+
+.hero h1 span {
+  color: #2563eb;
+}
+
+.hero-description {
+  font-size: 18px;
+  line-height: 1.7;
+  color: #64748b;
+  max-width: 600px;
+  margin-bottom: 30px;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 14px 25px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.primary-btn {
+  background: #2563eb;
+  color: white;
+}
+
+.secondary-btn {
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+}
+
+/* AI MATCH CARD */
+
+.hero-card {
+  min-width: 350px;
+}
+
+.match-card {
+  background: white;
+  padding: 35px;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+}
+
+.match-card h3 {
+  font-size: 24px;
+  margin-bottom: 30px;
+}
+
+.skills {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.skills div {
+  padding: 15px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.skills span {
+  display: block;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 5px;
+}
+
+.skills strong {
+  font-size: 17px;
+}
+
+.match-score {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #eff6ff;
+  padding: 18px;
+  border-radius: 10px;
+}
+
+.match-score strong {
+  font-size: 28px;
+  color: #2563eb;
+}
+
+/* HOW IT WORKS */
+
+.how-it-works {
+  padding: 100px 10%;
+  text-align: center;
+  background: white;
+}
+
+.how-it-works h2 {
+  font-size: 42px;
+  margin-bottom: 60px;
+}
+
+.steps {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+}
+
+.step-card {
+  flex: 1;
+  max-width: 350px;
+  text-align: left;
+  padding: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.step-number {
+  font-size: 28px;
+  font-weight: bold;
+  color: #2563eb;
+  margin-bottom: 20px;
+}
+
+.step-card h3 {
+  margin-bottom: 15px;
+}
+
+.step-card p {
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+  .hero {
+    flex-direction: column;
+    padding: 70px 8%;
+  }
+
+  .hero h1 {
+    font-size: 48px;
+  }
+
+  .steps {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero-card {
+    min-width: 100%;
+  }
+}

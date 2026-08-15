@@ -1,6 +1,11 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+// Email regex validator
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 // REGISTER USER
 const registerUser = async (req, res) => {
   try {
@@ -13,12 +18,28 @@ const registerUser = async (req, res) => {
       });
     }
 
+    const trimmedEmail = email.trim().toLowerCase();
+
+    // Validate email format
+    if (!isValidEmail(trimmedEmail)) {
+      return res.status(400).json({
+        message: "Please enter a valid email address",
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long",
+      });
+    }
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: trimmedEmail });
 
     if (existingUser) {
       return res.status(400).json({
-        message: "User already exists",
+        message: "User already exists with this email",
       });
     }
 
@@ -38,8 +59,8 @@ const registerUser = async (req, res) => {
 
     // Create user
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: trimmedEmail,
       password: hashedPassword,
       teachSkills: teachSkillsArray,
       learnSkills: learnSkillsArray,
@@ -48,6 +69,7 @@ const registerUser = async (req, res) => {
     res.status(201).json({
       message: "User registered successfully",
       user: {
+        _id: user._id,
         id: user._id,
         name: user.name,
         email: user.email,
@@ -108,6 +130,7 @@ res.status(200).json({
   message: "Login successful",
   token,
   user: {
+    _id: user._id,
     id: user._id,
     name: user.name,
     email: user.email,

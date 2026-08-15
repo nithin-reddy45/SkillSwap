@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { socket } from "../socket";
+import { API_BASE_URL } from "../config/api";
 import "./Login.css";
 
 function Login() {
@@ -44,7 +45,7 @@ function Login() {
       localStorage.removeItem("user");
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/login",
+        `${API_BASE_URL}/api/auth/login`,
         {
           method: "POST",
 
@@ -119,29 +120,30 @@ function Login() {
       // =========================
       // CONNECT SOCKET
       // =========================
-      if (data.user._id) {
+      const userId = data.user._id || data.user.id;
+
+      if (userId) {
         if (!socket.connected) {
           socket.connect();
         }
 
         socket.emit(
           "join",
-          data.user._id
+          userId
         );
 
         console.log(
           "Socket joined for user:",
-          data.user._id
+          userId
         );
       }
+
+      // Notify other components (Navbar etc) of login
+      window.dispatchEvent(new Event("authChanged"));
 
       console.log(
         "Login Success:",
         data
-      );
-
-      alert(
-        `Welcome back, ${data.user.name}! 🎉`
       );
 
       // =========================

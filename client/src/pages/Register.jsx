@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/api";
 import "./Register.css";
 
 function Register() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -17,44 +20,35 @@ function Register() {
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const response = await fetch(
-      "http://localhost:5000/api/auth/register",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || "Registration failed");
+        return;
       }
-    );
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.message || "Registration failed");
-      return;
+      alert("Registration successful! Please login.");
+      navigate("/login");
+    } catch (error) {
+      console.error("Registration Error:", error);
+      alert("Unable to connect to the server");
     }
-
-    alert("Registration successful!");
-
-    console.log(data);
-
-    setFormData({
-      name: "",
-      email: "",
-      password: "",
-      teachSkills: "",
-      learnSkills: "",
-    });
-  } catch (error) {
-    console.error("Registration Error:", error);
-    alert("Unable to connect to the server");
-  }
-};
+  };
 
   return (
     <div className="register-page">

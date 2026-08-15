@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/api";
 import "./FindMatches.css";
 
 function FindMatches() {
@@ -23,7 +24,7 @@ function FindMatches() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/users/matches",
+          `${API_BASE_URL}/api/users/matches`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -80,7 +81,7 @@ function FindMatches() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/connections/${receiverId}`,
+        `${API_BASE_URL}/api/connections/${receiverId}`,
         {
           method: "POST",
 

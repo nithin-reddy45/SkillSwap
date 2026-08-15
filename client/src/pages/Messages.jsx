@@ -3,7 +3,7 @@ import {
   useNavigate,
   useLocation,
 } from "react-router-dom";
-
+import { API_BASE_URL } from "../config/api";
 import "./Messages.css";
 
 function Messages() {
@@ -44,7 +44,7 @@ function Messages() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/connections/my-connections",
+          `${API_BASE_URL}/api/connections/my-connections`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

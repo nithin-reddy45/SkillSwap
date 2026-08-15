@@ -1,14 +1,27 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../socket";
+import { API_BASE_URL } from "../config/api";
 import "./Dashboard.css";
 
 function Dashboard() {
   const navigate = useNavigate();
 
-  const user = JSON.parse(
-    localStorage.getItem("user")
-  );
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Redirect if no user
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+  }, [user, navigate]);
 
   // Connection count
   const [connectionCount, setConnectionCount] =
@@ -29,7 +42,7 @@ function Dashboard() {
         if (!token) return;
 
         const response = await fetch(
-          "http://localhost:5000/api/connections/my-connections",
+          `${API_BASE_URL}/api/connections/my-connections`,
           {
             headers: {
               Authorization:
@@ -89,7 +102,7 @@ function Dashboard() {
         if (!token) return;
 
         const response = await fetch(
-          "http://localhost:5000/api/connections/requests",
+          `${API_BASE_URL}/api/connections/requests`,
           {
             headers: {
               Authorization:

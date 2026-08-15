@@ -33,6 +33,12 @@ router.post(
 
 // Accept or reject connection request
 router.put(
+  "/:connectionId/respond",
+  protect,
+  updateConnectionRequest
+);
+
+router.put(
   "/:connectionId",
   protect,
   updateConnectionRequest

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../socket";
+import { API_BASE_URL } from "../config/api";
 import "./Requests.css";
 
 function Requests() {
@@ -28,7 +29,7 @@ function Requests() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/connections/requests",
+          `${API_BASE_URL}/api/connections/requests`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -152,7 +153,7 @@ function Requests() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/connections/${connectionId}`,
+        `${API_BASE_URL}/api/connections/${connectionId}`,
         {
           method: "PUT",
 

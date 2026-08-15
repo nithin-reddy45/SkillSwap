@@ -1,101 +1,80 @@
 .register-page {
-  min-height: calc(100vh - 70px);
-  padding: 70px 20px;
+  min-height: calc(100vh - 75px);
+  padding: 60px 20px;
   display: flex;
   justify-content: center;
+  align-items: center;
+  background: var(--bg-main);
+  color: var(--text-primary);
 }
 
 .register-container {
   width: 100%;
-  max-width: 650px;
+  max-width: 480px;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  padding: 38px 32px;
+  box-shadow: var(--shadow-lg);
 }
 
 .register-header {
   text-align: center;
-  margin-bottom: 35px;
+  margin-bottom: 28px;
 }
 
 .register-tag {
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--brand-primary);
+  font-size: 11px;
+  font-weight: 800;
   letter-spacing: 2px;
-  color: #2563eb;
-  margin-bottom: 12px;
-}
-
-.register-header h1 {
-  font-size: 42px;
-  margin-bottom: 12px;
-}
-
-.register-header p {
-  color: #64748b;
-  line-height: 1.6;
-}
-
-.register-form {
-  background: white;
-  padding: 40px;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.06);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 22px;
-}
-
-.form-group label {
-  font-weight: 600;
+  text-transform: uppercase;
   margin-bottom: 8px;
 }
 
-.form-group input {
-  padding: 13px 15px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 15px;
-  outline: none;
+.register-header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
 }
 
-.form-group input:focus {
-  border-color: #2563eb;
+.register-header p {
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
-.form-group small {
-  margin-top: 6px;
-  color: #64748b;
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.register-form small {
+  color: var(--text-muted);
   font-size: 12px;
+  margin-top: 4px;
+  display: block;
 }
 
 .register-btn {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  background: #2563eb;
+  padding: 13px;
+  background: var(--brand-gradient);
   color: white;
-  font-size: 16px;
-  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 4px 16px var(--brand-glow);
+  transition: all var(--transition-fast);
+  margin-top: 8px;
 }
 
 .register-btn:hover {
-  background: #1d4ed8;
-}
-
-@media (max-width: 600px) {
-  .register-page {
-    padding: 40px 15px;
-  }
-
-  .register-header h1 {
-    font-size: 34px;
-  }
-
-  .register-form {
-    padding: 25px;
-  }
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--brand-glow);
 }

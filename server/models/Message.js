@@ -39,6 +39,18 @@ const messageSchema = new mongoose.Schema(
       default: false,
     },
 
+    // Forwarded message
+    isForwarded: {
+      type: Boolean,
+      default: false,
+    },
+
+    forwardedFrom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+      default: null,
+    },
+
     // Message reactions
     reactions: [
       {
@@ -59,6 +71,10 @@ const messageSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Performance Indexes
+messageSchema.index({ sender: 1, receiver: 1, createdAt: 1 });
+messageSchema.index({ receiver: 1, isRead: 1 });
 
 const Message = mongoose.model("Message", messageSchema);
 

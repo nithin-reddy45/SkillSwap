@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/api";
 import "./Matches.css";
 
 function Matches() {
@@ -20,7 +21,7 @@ function Matches() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/users/matches",
+          `${API_BASE_URL}/api/users/matches`,
           {
             method: "GET",
             headers: {
@@ -54,7 +55,7 @@ function Matches() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/api/connections/${receiverId}`,
+        `${API_BASE_URL}/api/connections/${receiverId}`,
         {
           method: "POST",
           headers: {

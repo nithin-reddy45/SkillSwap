@@ -30,6 +30,11 @@ const connectionSchema = new mongoose.Schema(
   }
 );
 
+// Performance Indexes
+connectionSchema.index({ sender: 1, receiver: 1, status: 1 });
+connectionSchema.index({ receiver: 1, status: 1 });
+connectionSchema.index({ sender: 1, status: 1 });
+
 module.exports = mongoose.model(
   "Connection",
   connectionSchema

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../socket";
+import { API_BASE_URL } from "../config/api";
 import "./Connections.css";
 
 function Connections() {
@@ -33,7 +34,7 @@ function Connections() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/connections/my-connections",
+          `${API_BASE_URL}/api/connections/my-connections`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -103,7 +104,7 @@ function Connections() {
         if (!token) return;
 
         const response = await fetch(
-          "http://localhost:5000/api/messages/unread/count",
+          `${API_BASE_URL}/api/messages/unread/count`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -158,7 +159,7 @@ function Connections() {
           if (!token) return;
 
           const response = await fetch(
-            "http://localhost:5000/api/messages/unread/by-sender",
+            `${API_BASE_URL}/api/messages/unread/by-sender`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,

@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { io } from "socket.io-client";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { socket } from "../socket";
+import { API_BASE_URL } from "../config/api";
 import "./Chat.css";
 
 function Chat() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -21,6 +22,12 @@ function Chat() {
 
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+
+  // Video / Voice Calls
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [activeCallType, setActiveCallType] = useState("video"); // "video" | "voice"
+  const [isCallInitiator, setIsCallInitiator] = useState(true);
+  const [incomingCallInfo, setIncomingCallInfo] = useState(null);
 
   // Edit
   const [editingMessageId, setEditingMessageId] =
@@ -124,18 +131,19 @@ function Chat() {
       return;
     }
 
-    const socket = io(
-      "http://localhost:5000"
-    );
+    const joinRoom = () => {
+      if (currentUserId) {
+        socket.emit("join", currentUserId);
+      }
+    };
 
-    socketRef.current = socket;
+    if (socket.connected) {
+      joinRoom();
+    } else {
+      socket.connect();
+    }
 
-    socket.on("connect", () => {
-      socket.emit(
-        "join",
-        currentUserId
-      );
-    });
+    socket.on("connect", joinRoom);
 
     // Online users
     const handleOnlineUsers = (users) => {
@@ -157,6 +165,24 @@ function Chat() {
     const handleReceiveMessage = (
       message
     ) => {
+      if (!message) return;
+
+      const msgSender = String(
+        message.sender?._id || message.sender
+      );
+      const msgReceiver = String(
+        message.receiver?._id || message.receiver
+      );
+      const activePartner = String(userId);
+      const myId = String(currentUserId);
+
+      // Only process messages for this conversation
+      const isForThisChat =
+        (msgSender === activePartner && msgReceiver === myId) ||
+        (msgSender === myId && msgReceiver === activePartner);
+
+      if (!isForThisChat) return;
+
       setIsTyping(false);
 
       setMessages((prevMessages) => {
@@ -176,6 +202,19 @@ function Chat() {
           message,
         ];
       });
+
+      // If received from chat partner, mark as read
+      if (msgSender === activePartner) {
+        fetch(
+          `${API_BASE_URL}/api/messages/read/${activePartner}`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        ).catch(() => {});
+      }
     };
 
     socket.on(
@@ -302,6 +341,11 @@ function Chat() {
 
     return () => {
       socket.off(
+        "connect",
+        joinRoom
+      );
+
+      socket.off(
         "onlineUsers",
         handleOnlineUsers
       );
@@ -348,14 +392,53 @@ function Chat() {
           typingTimeoutRef.current
         );
       }
-
-      socket.disconnect();
-      socketRef.current = null;
     };
   }, [
     currentUserId,
     userId,
   ]);
+
+  // Start voice call
+  const handleStartVoiceCall = () => {
+    const partner =
+      location.state?.selectedUser ||
+      connections.find(
+        (c) =>
+          String(c.user?._id) === String(userId) ||
+          String(c.user?.id) === String(userId)
+      )?.user;
+
+    window.dispatchEvent(
+      new CustomEvent("startCall", {
+        detail: {
+          partnerId: userId,
+          partnerName: partner?.name || "Skill Partner",
+          isVideo: false,
+        },
+      })
+    );
+  };
+
+  // Start video call
+  const handleStartVideoCall = () => {
+    const partner =
+      location.state?.selectedUser ||
+      connections.find(
+        (c) =>
+          String(c.user?._id) === String(userId) ||
+          String(c.user?.id) === String(userId)
+      )?.user;
+
+    window.dispatchEvent(
+      new CustomEvent("startCall", {
+        detail: {
+          partnerId: userId,
+          partnerName: partner?.name || "Skill Partner",
+          isVideo: true,
+        },
+      })
+    );
+  };
 
   // ================= FETCH MESSAGES =================
 
@@ -371,7 +454,7 @@ function Chat() {
         }
 
         const response = await fetch(
-          `http://localhost:5000/api/messages/${userId}`,
+          `${API_BASE_URL}/api/messages/${userId}`,
           {
             method: "GET",
             headers: {
@@ -401,7 +484,7 @@ function Chat() {
 
         // Mark messages as read
         await fetch(
-          `http://localhost:5000/api/messages/read/${userId}`,
+          `${API_BASE_URL}/api/messages/read/${userId}`,
           {
             method: "PUT",
             headers: {
@@ -447,7 +530,7 @@ function Chat() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/connections/my-connections",
+          `${API_BASE_URL}/api/connections/my-connections`,
           {
             method: "GET",
             headers: {
@@ -496,14 +579,14 @@ function Chat() {
     setNewMessage(value);
 
     if (
-      !socketRef.current ||
+      !socket ||
       !currentUserId
     ) {
       return;
     }
 
     if (value.trim()) {
-      socketRef.current.emit(
+      socket.emit(
         "typing",
         {
           senderId: currentUserId,
@@ -522,7 +605,7 @@ function Chat() {
 
     typingTimeoutRef.current =
       setTimeout(() => {
-        socketRef.current?.emit(
+        socket.emit(
           "stopTyping",
           {
             senderId:
@@ -548,7 +631,7 @@ function Chat() {
       const token =
         localStorage.getItem("token");
 
-      socketRef.current?.emit(
+      socket.emit(
         "stopTyping",
         {
           senderId: currentUserId,
@@ -565,7 +648,7 @@ function Chat() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/messages/${userId}`,
+        `${API_BASE_URL}/api/messages/${userId}`,
         {
           method: "POST",
 
@@ -668,7 +751,7 @@ function Chat() {
         localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/api/messages/edit/${messageId}`,
+        `${API_BASE_URL}/api/messages/edit/${messageId}`,
         {
           method: "PUT",
 
@@ -744,7 +827,7 @@ function Chat() {
         localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/api/messages/${messageId}`,
+        `${API_BASE_URL}/api/messages/${messageId}`,
         {
           method: "DELETE",
 
@@ -818,7 +901,7 @@ function Chat() {
         localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/api/messages/forward/${forwardingMessage._id}`,
+        `${API_BASE_URL}/api/messages/forward/${forwardingMessage._id}`,
         {
           method: "POST",
 
@@ -878,7 +961,7 @@ function Chat() {
         localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/api/messages/${messageId}/reaction`,
+        `${API_BASE_URL}/api/messages/${messageId}/reaction`,
         {
           method: "POST",
 
@@ -944,7 +1027,7 @@ function Chat() {
         localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/api/messages/${messageId}/reaction`,
+        `${API_BASE_URL}/api/messages/${messageId}/reaction`,
         {
           method: "DELETE",
 
@@ -1024,38 +1107,82 @@ function Chat() {
 
         {/* HEADER */}
 
-        <div className="chat-header">
-          <button
-            className="back-btn"
-            onClick={() =>
-              navigate(
-                "/connections"
-              )
-            }
-          >
-            ← Back
-          </button>
+        {(() => {
+          const partnerUser =
+            location.state?.selectedUser ||
+            connections.find(
+              (c) =>
+                String(c.user?._id) === String(userId) ||
+                String(c.user?.id) === String(userId)
+            )?.user ||
+            null;
 
-          <div>
-            <h2>
-              SkillSwap Chat 💬
-            </h2>
-
-            <p className="online-status">
-              <span
-                className={
-                  isUserOnline
-                    ? "status-dot online"
-                    : "status-dot offline"
+          return (
+            <div className="chat-header">
+              <button
+                className="back-btn"
+                onClick={() =>
+                  navigate("/connections")
                 }
-              ></span>
+              >
+                ← Back
+              </button>
 
-              {isUserOnline
-                ? "Online"
-                : "Offline"}
-            </p>
-          </div>
-        </div>
+              <div className="chat-partner-info">
+                <div className="chat-partner-avatar">
+                  {partnerUser?.name?.charAt(0)?.toUpperCase() || "👤"}
+                  <span
+                    className={
+                      isUserOnline
+                        ? "avatar-status-dot online"
+                        : "avatar-status-dot offline"
+                    }
+                  ></span>
+                </div>
+
+                <div className="chat-partner-details">
+                  <h2>
+                    {partnerUser?.name || "Skill Partner"}
+                  </h2>
+
+                  <p className="online-status">
+                    <span
+                      className={
+                        isUserOnline
+                          ? "status-dot online"
+                          : "status-dot offline"
+                      }
+                    ></span>
+
+                    {isUserOnline
+                      ? "Active Now"
+                      : "Offline"}
+                  </p>
+                </div>
+              </div>
+
+              {/* VOICE & VIDEO CALL BUTTONS */}
+              <div className="chat-call-actions">
+                <button
+                  type="button"
+                  className="call-action-btn voice"
+                  onClick={handleStartVoiceCall}
+                  title="Start Voice Call"
+                >
+                  📞
+                </button>
+                <button
+                  type="button"
+                  className="call-action-btn video"
+                  onClick={handleStartVideoCall}
+                  title="Start Video Call"
+                >
+                  📹
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* SEARCH */}
 
@@ -1227,8 +1354,10 @@ function Chat() {
                                   idx
                                 ) => {
                                   const hasReacted =
-                                    reaction.reactedBy?.includes(
-                                      currentUserId
+                                    reaction.reactedBy?.some(
+                                      (uid) =>
+                                        String(uid) ===
+                                        String(currentUserId)
                                     );
 
                                   return (
@@ -1376,8 +1505,13 @@ function Chat() {
           {/* TYPING */}
 
           {isTyping && (
-            <div className="typing-indicator">
-              ⌨️ User is typing...
+            <div className="typing-indicator-container">
+              <div className="typing-bubble">
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+              </div>
+              <span className="typing-label">typing...</span>
             </div>
           )}
 

@@ -1,13 +1,32 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { socket } from "../socket";
+import { useTheme } from "../context/ThemeContext";
+import { API_BASE_URL } from "../config/api";
 import "./Navbar.css";
 
 function Navbar() {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const [requestCount, setRequestCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
+
+  // Listen for auth state changes across the app
+  useEffect(() => {
+    const handleAuthChange = () => {
+      setToken(localStorage.getItem("token"));
+    };
+
+    window.addEventListener("authChanged", handleAuthChange);
+    window.addEventListener("storage", handleAuthChange);
+
+    return () => {
+      window.removeEventListener("authChanged", handleAuthChange);
+      window.removeEventListener("storage", handleAuthChange);
+    };
+  }, []);
 
   // ============================
   // LOGOUT
@@ -22,9 +41,12 @@ function Navbar() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
-    // Clear notification counts
+    // Clear notification counts & state
     setRequestCount(0);
     setUnreadCount(0);
+    setToken(null);
+
+    window.dispatchEvent(new Event("authChanged"));
 
     // Go to login page
     navigate("/login");
@@ -34,7 +56,7 @@ function Navbar() {
   // NOTIFICATIONS + SOCKET
   // ============================
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const currentToken = localStorage.getItem("token");
 
     let user = null;
 
@@ -49,7 +71,7 @@ function Navbar() {
     }
 
     // If user is not logged in
-    if (!token || !user) {
+    if (!currentToken || !user) {
       return;
     }
 
@@ -59,10 +81,10 @@ function Navbar() {
     const fetchRequestCount = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/connections/requests",
+          `${API_BASE_URL}/api/connections/requests`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${currentToken}`,
             },
           }
         );
@@ -86,10 +108,10 @@ function Navbar() {
     const fetchUnreadCount = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/messages/unread/count",
+          `${API_BASE_URL}/api/messages/unread/count`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${currentToken}`,
             },
           }
         );
@@ -171,14 +193,13 @@ function Navbar() {
         handleReceiveMessage
       );
     };
-  }, []);
-
-  const token = localStorage.getItem("token");
+  }, [token]);
 
   return (
     <nav className="navbar">
       <Link to="/" className="logo">
-        SkillSwap AI
+        <span className="logo-icon">⚡</span>
+        <span className="logo-text">SkillSwap <span className="logo-ai">AI</span></span>
       </Link>
 
       <div className="nav-links">
@@ -190,9 +211,8 @@ function Navbar() {
               Dashboard
             </Link>
             <Link to="/profile">
-      👤 Profile
-
-    </Link>
+              👤 Profile
+            </Link>
 
             <Link to="/matches">
               Find Matches
@@ -221,7 +241,7 @@ function Navbar() {
               to="/messages"
               className="messages-link"
             >
-              🔔 Messages
+              💬 Messages
 
               {unreadCount > 0 && (
                 <span className="message-badge">
@@ -231,23 +251,33 @@ function Navbar() {
                 </span>
               )}
             </Link>
-
-            <button
-              className="nav-logout-btn"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
           </>
         )}
 
-        {!token && (
+        {/* Theme Toggle Button */}
+        <button
+          className="theme-toggle-btn"
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          aria-label="Toggle Theme"
+        >
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
+
+        {token ? (
+          <button
+            className="nav-logout-btn"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+        ) : (
           <>
-            <Link to="/login">
+            <Link to="/login" className="nav-login-btn">
               Login
             </Link>
 
-            <Link to="/register">
+            <Link to="/register" className="nav-register-btn">
               Register
             </Link>
           </>

@@ -1,6 +1,8 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
 
@@ -10,8 +12,6 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const connectionRoutes = require("./routes/connectionRoutes");
 const messageRoutes = require("./routes/messageRoutes");
-
-dotenv.config();
 
 connectDB();
 
@@ -23,8 +23,9 @@ const server = http.createServer(app);
 // Configure Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
   },
 });
 
@@ -35,7 +36,7 @@ const onlineUsers = new Map();
 app.set("io", io);
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 // API Routes
@@ -57,6 +58,7 @@ io.on("connection", (socket) => {
 
   // User joins their personal room
   socket.on("join", (userId) => {
+    if (!userId) return;
     const id = userId.toString();
 
     socket.join(id);
@@ -64,7 +66,7 @@ io.on("connection", (socket) => {
     // Store user as online
     onlineUsers.set(id, socket.id);
 
-    console.log(`User ${id} is now online`);
+    console.log(`User ${id} joined room and is online`);
 
     // Broadcast updated online users
     io.emit("onlineUsers", Array.from(onlineUsers.keys()));
@@ -72,6 +74,7 @@ io.on("connection", (socket) => {
 
   // User is typing
   socket.on("typing", ({ senderId, receiverId }) => {
+    if (!receiverId) return;
     io.to(receiverId.toString()).emit("typing", {
       senderId,
     });
@@ -79,9 +82,51 @@ io.on("connection", (socket) => {
 
   // User stopped typing
   socket.on("stopTyping", ({ senderId, receiverId }) => {
+    if (!receiverId) return;
     io.to(receiverId.toString()).emit("stopTyping", {
       senderId,
     });
+  });
+
+  // ================= WEBRTC CALL SIGNALING =================
+
+  // Call user (Video / Voice)
+  socket.on("callUser", ({ userToCall, signalData, from, fromName, isVideo }) => {
+    if (!userToCall) return;
+    io.to(userToCall.toString()).emit("incomingCall", {
+      signal: signalData,
+      from,
+      fromName,
+      isVideo,
+    });
+  });
+
+  // Answer call
+  socket.on("answerCall", ({ to, signal }) => {
+    if (!to) return;
+    io.to(to.toString()).emit("callAccepted", {
+      signal,
+    });
+  });
+
+  // Relay ICE Candidate
+  socket.on("iceCandidate", ({ to, candidate }) => {
+    if (!to) return;
+    io.to(to.toString()).emit("iceCandidate", {
+      candidate,
+    });
+  });
+
+  // End call
+  socket.on("endCall", ({ to }) => {
+    if (!to) return;
+    io.to(to.toString()).emit("callEnded");
+  });
+
+  // Reject call
+  socket.on("rejectCall", ({ to }) => {
+    if (!to) return;
+    io.to(to.toString()).emit("callRejected");
   });
 
   // User disconnects
@@ -89,7 +134,6 @@ io.on("connection", (socket) => {
     for (const [userId, socketId] of onlineUsers.entries()) {
       if (socketId === socket.id) {
         onlineUsers.delete(userId);
-
         console.log(`User ${userId} is now offline`);
         break;
       }
@@ -97,7 +141,6 @@ io.on("connection", (socket) => {
 
     // Broadcast updated online users
     io.emit("onlineUsers", Array.from(onlineUsers.keys()));
-
     console.log("User disconnected:", socket.id);
   });
 });

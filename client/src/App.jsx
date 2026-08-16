@@ -10,6 +10,8 @@ import NotFound from "./pages/NotFound.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import Courses from "./pages/Courses.jsx";
+import CodingTests from "./pages/CodingTests.jsx";
 
 import Dashboard from "./pages/Dashboard.jsx";
 import FindMatches from "./pages/FindMatches.jsx";
@@ -117,6 +119,28 @@ function App() {
         <Route
           path="/register"
           element={<Register />}
+        />
+
+        <Route
+          path="/courses"
+          element={<Courses />}
+        />
+        <Route
+          path="/tutorials"
+          element={<Courses />}
+        />
+
+        <Route
+          path="/coding-test"
+          element={<CodingTests />}
+        />
+        <Route
+          path="/coding-test/:testId"
+          element={<CodingTests />}
+        />
+        <Route
+          path="/arena"
+          element={<CodingTests />}
         />
 
 

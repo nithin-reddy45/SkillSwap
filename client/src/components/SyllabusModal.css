@@ -1,0 +1,287 @@
+.syllabus-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.syllabus-modal-container {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 800px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg), 0 0 30px var(--brand-glow);
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.syllabus-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.syllabus-pill-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.syllabus-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--bg-tag-learn);
+  color: var(--text-tag-learn);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+.syllabus-level-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-alt);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+.syllabus-modal-header h2 {
+  font-size: 21px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.syllabus-meta {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.syllabus-close-btn {
+  background: var(--bg-alt);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.syllabus-close-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.syllabus-modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.syllabus-intro-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.banner-icon {
+  font-size: 34px;
+}
+
+.syllabus-intro-banner h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.syllabus-intro-banner p {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.timeline-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 18px;
+}
+
+.timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.marker-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--brand-gradient);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 4px 10px var(--brand-glow);
+}
+
+.marker-line {
+  width: 2px;
+  flex: 1;
+  background: var(--border-color);
+  margin-top: 6px;
+  min-height: 40px;
+}
+
+.timeline-content {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.timeline-week {
+  background: var(--bg-tag-teach);
+  color: var(--text-tag-teach);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.timeline-header h4 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.timeline-topics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.timeline-topic-card {
+  background: var(--bg-alt);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.topic-num {
+  font-weight: 700;
+  color: var(--brand-primary);
+  margin-right: 6px;
+}
+
+.syllabus-prereq-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.syllabus-prereq-box h4 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+}
+
+.prereq-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.prereq-tag {
+  background: var(--bg-tag-teach);
+  color: var(--text-tag-teach);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
+.syllabus-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 28px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.syllabus-btn-secondary {
+  background: var(--bg-alt);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.syllabus-btn-secondary:hover {
+  background: var(--bg-card-hover);
+}
+
+.syllabus-btn-primary {
+  background: var(--brand-gradient);
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px var(--brand-glow);
+  transition: all var(--transition-fast);
+}
+
+.syllabus-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--brand-glow);
+}

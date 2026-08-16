@@ -12,6 +12,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const connectionRoutes = require("./routes/connectionRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const compilerRoutes = require("./routes/compilerRoutes");
 
 connectDB();
 
@@ -44,6 +45,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/compiler", compilerRoutes);
 
 // Test route
 app.get("/", (req, res) => {

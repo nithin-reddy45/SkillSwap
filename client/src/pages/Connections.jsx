@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { socket } from "../socket";
 import { API_BASE_URL } from "../config/api";
+import ScheduleSessionModal from "../components/ScheduleSessionModal";
 import "./Connections.css";
 
 function Connections() {
@@ -10,19 +11,20 @@ function Connections() {
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Total unread messages
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Unread messages grouped by sender
-  const [unreadCountsBySender, setUnreadCountsBySender] =
-    useState({});
+  const [unreadCountsBySender, setUnreadCountsBySender] = useState({});
 
+  // Schedule Modal
+  const [selectedPartnerForSchedule, setSelectedPartnerForSchedule] = useState(null);
 
   // ==============================
   // FETCH CONNECTIONS
   // ==============================
-  // LOAD CONNECTIONS
   useEffect(() => {
     const fetchConnections = async () => {
       try {
@@ -45,27 +47,15 @@ function Connections() {
         const data = await response.json();
 
         if (!response.ok) {
-          setError(
-            data.message || "Failed to fetch connections"
-          );
+          setError(data.message || "Failed to fetch connections");
           return;
         }
 
-        setConnections(
-          Array.isArray(data) ? data : []
-        );
-
+        setConnections(Array.isArray(data) ? data : []);
         setError("");
-
       } catch (error) {
-        console.error(
-          "Connections Error:",
-          error
-        );
-
-        setError(
-          "Unable to connect to the server"
-        );
+        console.error("Connections Error:", error);
+        setError("Unable to connect to the server");
       } finally {
         setLoading(false);
       }
@@ -73,34 +63,24 @@ function Connections() {
 
     fetchConnections();
 
-    // Listen for refresh event
     const handleRefresh = () => {
       fetchConnections();
     };
 
-    window.addEventListener(
-      "refreshConnections",
-      handleRefresh
-    );
+    window.addEventListener("refreshConnections", handleRefresh);
 
     return () => {
-      window.removeEventListener(
-        "refreshConnections",
-        handleRefresh
-      );
+      window.removeEventListener("refreshConnections", handleRefresh);
     };
   }, [navigate]);
-
 
   // ==============================
   // FETCH TOTAL UNREAD COUNT
   // ==============================
-  // LOAD AND REFRESH TOTAL UNREAD COUNT
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
         const token = localStorage.getItem("token");
-
         if (!token) return;
 
         const response = await fetch(
@@ -113,437 +93,302 @@ function Connections() {
         );
 
         const data = await response.json();
-
-        if (!response.ok) {
-          console.error(
-            data.message ||
-            "Failed to fetch unread count"
-          );
-          return;
+        if (response.ok) {
+          setUnreadCount(data.unreadCount || 0);
         }
-
-        setUnreadCount(
-          data.unreadCount || 0
-        );
-
       } catch (error) {
-        console.error(
-          "Unread Count Error:",
-          error
-        );
+        console.error("Unread Count Error:", error);
       }
     };
 
     fetchUnreadCount();
 
-    const interval = setInterval(
-      fetchUnreadCount,
-      5000
-    );
+    const handleMessageRead = () => {
+      fetchUnreadCount();
+    };
 
-    return () => clearInterval(interval);
+    window.addEventListener("messageRead", handleMessageRead);
 
+    return () => {
+      window.removeEventListener("messageRead", handleMessageRead);
+    };
   }, []);
-
 
   // ==============================
   // FETCH UNREAD COUNTS BY SENDER
   // ==============================
-  // LOAD AND REFRESH UNREAD COUNTS
   useEffect(() => {
-    const fetchUnreadCountsBySender =
-      async () => {
-        try {
-          const token = localStorage.getItem("token");
+    const fetchUnreadBySender = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
 
-          if (!token) return;
-
-          const response = await fetch(
-            `${API_BASE_URL}/api/messages/unread/by-sender`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            console.error(
-              data.message ||
-              "Failed to fetch unread counts"
-            );
-
-            return;
+        const response = await fetch(
+          `${API_BASE_URL}/api/messages/unread-by-sender`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
+        );
 
-          setUnreadCountsBySender(
-            data.unreadCounts || {}
-          );
-
-        } catch (error) {
-          console.error(
-            "Unread Counts By Sender Error:",
-            error
-          );
+        const data = await response.json();
+        if (response.ok) {
+          setUnreadCountsBySender(data.unreadCounts || {});
         }
-      };
+      } catch (error) {
+        console.error("Unread By Sender Error:", error);
+      }
+    };
 
-    fetchUnreadCountsBySender();
+    fetchUnreadBySender();
 
-    const interval = setInterval(
-      fetchUnreadCountsBySender,
-      5000
-    );
+    const handleMessageRead = () => {
+      fetchUnreadBySender();
+    };
 
-    return () => clearInterval(interval);
+    window.addEventListener("messageRead", handleMessageRead);
 
+    return () => {
+      window.removeEventListener("messageRead", handleMessageRead);
+    };
   }, []);
 
-
-  // ==============================
-  // CONNECT SOCKET
-  // ==============================
-  useEffect(() => {
-    if (!socket) return;
-
-    if (!socket.connected) {
-      socket.connect();
-    }
-  }, []);
-
-
-  // ==============================
-  // REAL-TIME MESSAGE UPDATE
-  // ==============================
+  // Socket listener for new messages
   useEffect(() => {
     if (!socket) return;
 
     const handleReceiveMessage = (newMessage) => {
-      if (!newMessage || !newMessage.sender) {
-        return;
-      }
+      setUnreadCount((prev) => prev + 1);
 
-      const senderId =
-        typeof newMessage.sender === "object"
-          ? (
-              newMessage.sender._id ||
-              newMessage.sender.id
-            )
-          : newMessage.sender;
-
-      if (!senderId) return;
-
-      const senderIdString = String(senderId);
-
-      // Update total unread count
-      setUnreadCount((previousCount) => {
-        return previousCount + 1;
-      });
-
-      // Update unread count for that sender
-      setUnreadCountsBySender(
-        (previousCounts) => ({
-          ...previousCounts,
-
-          [senderIdString]:
-            (previousCounts[senderIdString] || 0) + 1,
-        })
-      );
-    };
-
-
-    socket.on(
-      "receiveMessage",
-      handleReceiveMessage
-    );
-
-
-    return () => {
-      socket.off(
-        "receiveMessage",
-        handleReceiveMessage
-      );
-    };
-
-  }, []);
-
-
-  // ==============================
-  // REAL-TIME CONNECTION UPDATE
-  // ==============================
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleConnectionUpdate = (data) => {
-      console.log(
-        "Connection request updated:",
-        data
-      );
-
-      // If the request is accepted,
-      // automatically refresh connections
-      if (data?.status === "accepted") {
-        window.dispatchEvent(
-          new Event("refreshConnections")
+      if (newMessage?.sender) {
+        const senderId = String(
+          typeof newMessage.sender === "object"
+            ? newMessage.sender._id
+            : newMessage.sender
         );
+
+        setUnreadCountsBySender((prev) => ({
+          ...prev,
+          [senderId]: (prev[senderId] || 0) + 1,
+        }));
       }
     };
 
-
-    socket.on(
-      "connectionRequestUpdated",
-      handleConnectionUpdate
-    );
-
+    socket.on("receiveMessage", handleReceiveMessage);
 
     return () => {
-      socket.off(
-        "connectionRequestUpdated",
-        handleConnectionUpdate
-      );
+      socket.off("receiveMessage", handleReceiveMessage);
     };
-
   }, []);
 
-
-  // ==============================
-  // REAL-TIME CONNECTION REQUEST
-  // ==============================
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewConnectionRequest = (data) => {
-      console.log(
-        "New connection request:",
-        data
-      );
-
-      // Notify other components/pages
-      window.dispatchEvent(
-        new Event("newConnectionRequest")
-      );
-    };
-
-
-    socket.on(
-      "newConnectionRequest",
-      handleNewConnectionRequest
+  const filteredConnections = connections.filter((conn) => {
+    const u = conn.user;
+    if (!u) return false;
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const nameMatch = u.name?.toLowerCase().includes(query);
+    const emailMatch = u.email?.toLowerCase().includes(query);
+    const teachMatch = (u.teachSkills || []).some((s) =>
+      (typeof s === "string" ? s : s.skill).toLowerCase().includes(query)
     );
+    const learnMatch = (u.learnSkills || []).some((s) =>
+      (typeof s === "string" ? s : s.skill).toLowerCase().includes(query)
+    );
+    return nameMatch || emailMatch || teachMatch || learnMatch;
+  });
 
-
-    return () => {
-      socket.off(
-        "newConnectionRequest",
-        handleNewConnectionRequest
-      );
-    };
-
-  }, []);
-
-
-  // ==============================
-  // LOADING
-  // ==============================
   if (loading) {
     return (
       <div className="connections-page">
-        <h1>
-          Loading your connections... 🤝
-        </h1>
+        <div className="connections-container">
+          <div className="connections-loading-card">
+            <h2>🤝 Loading your SkillSwap network...</h2>
+          </div>
+        </div>
       </div>
     );
   }
 
-
   return (
     <div className="connections-page">
+      <div className="connections-container">
+        
+        {/* HEADER */}
+        <div className="connections-header">
+          <div className="connections-chip">
+            <span>MY NETWORK</span>
+          </div>
 
-      {/* HEADER */}
-      <div className="connections-header">
+          <h1>
+            My SkillSwap <span className="gradient-text">Connections</span> 🤝
+            {unreadCount > 0 && (
+              <span className="unread-header-badge">
+                {unreadCount > 99 ? "99+" : unreadCount} Unread
+              </span>
+            )}
+          </h1>
 
-        <p className="connections-tag">
-          MY NETWORK
-        </p>
-
-        <h1>
-          My SkillSwap Connections 🤝
-
-          {unreadCount > 0 && (
-            <span className="unread-badge">
-              {unreadCount > 99
-                ? "99+"
-                : unreadCount}
-            </span>
-          )}
-        </h1>
-
-        <p>
-          Connect, learn, and exchange knowledge
-          with your SkillSwap community.
-        </p>
-
-      </div>
-
-
-      {/* ERROR */}
-      {error && (
-        <div className="error-message">
-          {error}
+          <p>
+            Connect, collaborate, schedule 1-on-1 sessions, and exchange technical skills with your community.
+          </p>
         </div>
-      )}
 
+        {/* CONTROLS ROW */}
+        <div className="connections-controls-bar">
+          <div className="search-input-wrapper">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search connections by name or skill..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button className="clear-search-btn" onClick={() => setSearchQuery("")}>
+                ✕
+              </button>
+            )}
+          </div>
 
-      {/* NO CONNECTIONS */}
-      {!error &&
-        connections.length === 0 && (
-          <div className="no-connections">
+          <Link to="/matches" className="find-more-btn">
+            + Find New Matches
+          </Link>
+        </div>
 
+        {/* ERROR */}
+        {error && <div className="connections-error-box">⚠️ {error}</div>}
+
+        {/* NO CONNECTIONS */}
+        {!error && filteredConnections.length === 0 && (
+          <div className="no-connections-card">
+            <span className="empty-icon">🤝</span>
             <h2>
-              No connections yet
+              {searchQuery ? "No matching connections found" : "No connections yet"}
             </h2>
-
             <p>
-              Find skill matches and send connection
-              requests to grow your network.
+              {searchQuery
+                ? "Try searching with a different skill or member name."
+                : "Explore skill matches and send connection requests to grow your peer network!"}
             </p>
-
+            <Link to="/matches" className="explore-matches-cta">
+              🔍 Discover Skill Matches
+            </Link>
           </div>
         )}
 
+        {/* CONNECTION GRID */}
+        <div className="connections-grid">
+          {filteredConnections.map((connection) => {
+            const user = connection.user;
+            if (!user) return null;
 
-      {/* CONNECTION GRID */}
-      <div className="connections-grid">
+            const userId = String(user._id || user.id);
+            const userUnreadCount = unreadCountsBySender[userId] || 0;
+            const initials = user.name
+              ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+              : "U";
 
-        {connections.map((connection) => {
-          const user = connection.user;
+            return (
+              <div className="connection-card" key={connection._id}>
+                
+                {/* USER INFO */}
+                <div className="connection-user-row">
+                  <div className="connection-avatar">
+                    {initials}
+                  </div>
 
-          if (!user) return null;
+                  <div className="connection-info">
+                    <h2>{user.name || "Skill Member"}</h2>
+                    <span className="user-email-sub">{user.email || ""}</span>
+                    {user.careerGoal && (
+                      <span className="user-role-tag">{user.careerGoal}</span>
+                    )}
+                  </div>
 
-          const userId = String(user._id);
-
-          const userUnreadCount =
-            unreadCountsBySender[userId] || 0;
-
-          return (
-            <div
-              className="connection-card"
-              key={connection._id}
-            >
-
-              {/* USER INFORMATION */}
-              <div className="connection-user">
-
-                <div className="connection-avatar">
-                  {user.name
-                    ?.charAt(0)
-                    ?.toUpperCase() || "U"}
-                </div>
-
-                <div>
-                  <h2>
-                    {user.name || "Unknown User"}
-                  </h2>
-
-                  <p>
-                    {user.email || ""}
-                  </p>
-                </div>
-
-              </div>
-
-
-              {/* CAN TEACH */}
-              <div className="connection-section">
-
-                <h3>🎓 Can Teach</h3>
-
-                <div className="skill-tags">
-
-                  {Array.isArray(user.teachSkills) &&
-                  user.teachSkills.length > 0 ? (
-                    user.teachSkills.map(
-                      (skill, index) => (
-                        <span
-                          className="teach-tag"
-                          key={index}
-                        >
-                          {skill}
-                        </span>
-                      )
-                    )
-                  ) : (
-                    <span>
-                      No skills added
-                    </span>
+                  {user.avgRating && (
+                    <div className="user-rating-pill">
+                      ⭐ {user.avgRating.toFixed(1)}
+                    </div>
                   )}
+                </div>
 
+                {/* CAN TEACH */}
+                <div className="connection-section">
+                  <h3>🎓 Can Teach</h3>
+                  <div className="skill-tags">
+                    {Array.isArray(user.teachSkills) && user.teachSkills.length > 0 ? (
+                      user.teachSkills.map((item, index) => {
+                        const skillName = typeof item === "string" ? item : item.skill;
+                        const isVer = typeof item === "object" && item.isVerified;
+                        return (
+                          <span className={`teach-tag ${isVer ? "verified" : ""}`} key={index}>
+                            {skillName} {isVer && "✓"}
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span className="no-skills-msg">No skills listed</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* WANTS TO LEARN */}
+                <div className="connection-section">
+                  <h3>📚 Wants to Learn</h3>
+                  <div className="skill-tags">
+                    {Array.isArray(user.learnSkills) && user.learnSkills.length > 0 ? (
+                      user.learnSkills.map((item, index) => {
+                        const skillName = typeof item === "string" ? item : item.skill;
+                        return (
+                          <span className="learn-tag" key={index}>
+                            {skillName}
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span className="no-skills-msg">No skills listed</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ACTIONS ROW */}
+                <div className="connection-actions-row">
+                  <button
+                    className="message-btn"
+                    onClick={() => navigate(`/chat/${user._id || user.id}`)}
+                  >
+                    💬 Message
+                    {userUnreadCount > 0 && (
+                      <span className="individual-unread-badge">
+                        {userUnreadCount > 99 ? "99+" : userUnreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    className="schedule-session-action-btn"
+                    onClick={() => setSelectedPartnerForSchedule(user)}
+                  >
+                    📅 Schedule Session
+                  </button>
                 </div>
 
               </div>
+            );
+          })}
+        </div>
 
-
-              {/* WANTS TO LEARN */}
-              <div className="connection-section">
-
-                <h3>📚 Wants to Learn</h3>
-
-                <div className="skill-tags">
-
-                  {Array.isArray(user.learnSkills) &&
-                  user.learnSkills.length > 0 ? (
-                    user.learnSkills.map(
-                      (skill, index) => (
-                        <span
-                          className="learn-tag"
-                          key={index}
-                        >
-                          {skill}
-                        </span>
-                      )
-                    )
-                  ) : (
-                    <span>
-                      No skills added
-                    </span>
-                  )}
-
-                </div>
-
-              </div>
-
-
-              {/* CONNECTION STATUS */}
-              <div className="connection-status">
-                ✓ Connected
-              </div>
-
-
-              {/* MESSAGE BUTTON */}
-              <button
-                className="message-btn"
-                onClick={() =>
-                  navigate(`/chat/${user._id}`)
-                }
-              >
-                💬 Message
-
-                {userUnreadCount > 0 && (
-                  <span className="individual-unread-badge">
-                    {userUnreadCount > 99
-                      ? "99+"
-                      : userUnreadCount}
-                  </span>
-                )}
-              </button>
-
-            </div>
-          );
-        })}
+        {/* SCHEDULE MODAL */}
+        {selectedPartnerForSchedule && (
+          <ScheduleSessionModal
+            isOpen={!!selectedPartnerForSchedule}
+            onClose={() => setSelectedPartnerForSchedule(null)}
+            defaultPartner={selectedPartnerForSchedule}
+          />
+        )}
 
       </div>
-
     </div>
   );
 }

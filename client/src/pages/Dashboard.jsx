@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { socket } from "../socket";
 import { API_BASE_URL } from "../config/api";
 import { COURSES_DATA } from "../data/coursesData";
@@ -28,11 +28,9 @@ function Dashboard() {
     }
   }, [user, navigate]);
 
-  // Connection count
   const [connectionCount, setConnectionCount] = useState(0);
-
-  // Pending request count
   const [requestCount, setRequestCount] = useState(0);
+  const [sessionsCount, setSessionsCount] = useState(0);
 
   // Modals & Bookmarks state
   const [playerCourse, setPlayerCourse] = useState(null);
@@ -66,151 +64,91 @@ function Dashboard() {
     if (!user?.learnSkills || user.learnSkills.length === 0) {
       return COURSES_DATA.slice(0, 3);
     }
+    const skillList = user.learnSkills.map((s) => (typeof s === "string" ? s : s.skill).toLowerCase());
     const matched = COURSES_DATA.filter((course) => {
-      const skillLower = user.learnSkills.map((s) => s.toLowerCase());
       return (
-        skillLower.some((s) => course.primarySkill.toLowerCase().includes(s)) ||
-        skillLower.some((s) => course.title.toLowerCase().includes(s)) ||
+        skillList.some((s) => course.primarySkill.toLowerCase().includes(s)) ||
+        skillList.some((s) => course.title.toLowerCase().includes(s)) ||
         course.relatedSkills.some((rs) =>
-          skillLower.some((s) => rs.toLowerCase().includes(s))
+          skillList.some((s) => rs.toLowerCase().includes(s))
         )
       );
     });
 
-    if (matched.length === 0) {
-      return COURSES_DATA.slice(0, 3);
-    }
-    return matched.slice(0, 3);
+    return matched.length === 0 ? COURSES_DATA.slice(0, 3) : matched.slice(0, 3);
   }, [user]);
 
-  // FETCH CONNECTIONS COUNT
+  // Fetch Stats (Connections, Requests, Sessions)
   useEffect(() => {
-    const fetchConnections = async () => {
+    const fetchDashboardStats = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/connections/my-connections`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        // Connections
+        const connRes = await fetch(`${API_BASE_URL}/api/connections/my-connections`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const connData = await connRes.json();
+        if (connRes.ok && Array.isArray(connData)) {
+          setConnectionCount(connData.length);
+        }
 
-        const data = await response.json();
+        // Requests
+        const reqRes = await fetch(`${API_BASE_URL}/api/connections/requests`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const reqData = await reqRes.json();
+        if (reqRes.ok && Array.isArray(reqData)) {
+          setRequestCount(reqData.length);
+        }
 
-        if (response.ok) {
-          setConnectionCount(Array.isArray(data) ? data.length : 0);
+        // Sessions
+        const sessRes = await fetch(`${API_BASE_URL}/api/sessions/my-sessions`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const sessData = await sessRes.json();
+        if (sessRes.ok) {
+          const totalUpcoming = (sessData.upcoming?.length || 0) + (sessData.pending?.length || 0);
+          setSessionsCount(totalUpcoming);
         }
       } catch (error) {
-        console.error("Connection Count Error:", error);
+        console.error("Dashboard Stats Error:", error);
       }
     };
 
-    fetchConnections();
-
-    const handleRequestUpdated = () => {
-      fetchConnections();
-    };
-
-    window.addEventListener("requestUpdated", handleRequestUpdated);
-
-    return () => {
-      window.removeEventListener("requestUpdated", handleRequestUpdated);
-    };
-  }, []);
-
-  // FETCH PENDING REQUEST COUNT
-  useEffect(() => {
-    const fetchRequestCount = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
-        const response = await fetch(
-          `${API_BASE_URL}/api/connections/requests`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = await response.json();
-
-        if (response.ok) {
-          setRequestCount(Array.isArray(data) ? data.length : 0);
-        }
-      } catch (error) {
-        console.error("Request Count Error:", error);
-      }
-    };
-
-    fetchRequestCount();
-  }, []);
-
-  // REAL-TIME CONNECTION REQUEST
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewConnectionRequest = () => {
-      setRequestCount((prevCount) => prevCount + 1);
-    };
-
-    socket.on("newConnectionRequest", handleNewConnectionRequest);
-
-    return () => {
-      socket.off("newConnectionRequest", handleNewConnectionRequest);
-    };
+    fetchDashboardStats();
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    window.dispatchEvent(new Event("authChanged"));
     navigate("/login");
   };
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <div className="dashboard-page">
       {/* Welcome Section */}
       <section className="dashboard-hero">
         <div>
-          <p className="dashboard-tag">YOUR LEARNING DASHBOARD</p>
+          <p className="dashboard-tag">YOUR AI LEARNING DASHBOARD</p>
           <h1>Welcome back, {user.name}! 👋</h1>
           <p className="dashboard-subtitle">
-            Manage your skills, discover new people, access top tutorials, and
-            grow your learning network.
+            Manage your skills, discover reciprocal swap partners, schedule 1-on-1 sessions, and advance your career with AI.
           </p>
         </div>
 
         <div className="dashboard-actions">
-          {/* ALL TUTORIALS BUTTON */}
-          <button
-            className="browse-tutorials-btn"
-            onClick={() => navigate("/courses")}
-          >
-            🎓 Tutorials
+          <button className="browse-tutorials-btn" onClick={() => navigate("/matches")}>
+            🔍 Find Matches
           </button>
-
-          {/* CODING TESTS ARENA BUTTON */}
-          <button
-            className="browse-tutorials-btn"
-            onClick={() => navigate("/coding-test")}
-          >
-            ⚡ Coding Tests
+          <button className="browse-tutorials-btn" onClick={() => navigate("/sessions")}>
+            📅 Sessions
           </button>
-
-          {/* CONNECTION REQUEST NOTIFICATION */}
-          <button
-            className="request-notification-btn"
-            onClick={() => navigate("/requests")}
-          >
+          <button className="request-notification-btn" onClick={() => navigate("/requests")}>
             🔔 Requests
             {requestCount > 0 && (
               <span className="dashboard-request-badge">
@@ -218,18 +156,12 @@ function Dashboard() {
               </span>
             )}
           </button>
-
-          {/* LOGOUT */}
-          <button className="logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
         </div>
       </section>
 
       {/* Statistics */}
       <section className="stats-grid">
-        {/* TEACH SKILLS */}
-        <div className="stat-card">
+        <div className="stat-card" onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
           <div className="stat-icon">🎓</div>
           <div>
             <h3>{user.teachSkills?.length || 0}</h3>
@@ -237,8 +169,7 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* LEARN SKILLS */}
-        <div className="stat-card">
+        <div className="stat-card" onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
           <div className="stat-icon">📚</div>
           <div>
             <h3>{user.learnSkills?.length || 0}</h3>
@@ -246,21 +177,68 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* CONNECTIONS */}
-        <div
-          className="stat-card"
-          style={{ cursor: "pointer" }}
-          onClick={() => navigate("/connections")}
-        >
+        <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/connections")}>
           <div className="stat-icon">🤝</div>
           <div>
             <h3>{connectionCount}</h3>
-            <p>Connections</p>
+            <p>Active Connections</p>
+          </div>
+        </div>
+
+        <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/sessions")}>
+          <div className="stat-icon">📅</div>
+          <div>
+            <h3>{sessionsCount}</h3>
+            <p>Upcoming Sessions</p>
+          </div>
+        </div>
+
+        <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/leaderboard")}>
+          <div className="stat-icon">⭐</div>
+          <div>
+            <h3>{(user.avgRating || 5.0).toFixed(1)} ★</h3>
+            <p>Reputation Rating</p>
           </div>
         </div>
       </section>
 
-      {/* Main Dashboard */}
+      {/* UNIFIED AI POWER TOOLS MATRIX */}
+      <section className="ai-tools-hub-section">
+        <h2 className="section-title">⚡ AI Skill Ecosystem Hub</h2>
+        <div className="ai-tools-cards-grid">
+          
+          <div className="ai-hub-card" onClick={() => navigate("/roadmap")}>
+            <div className="hub-card-icon">🗺️</div>
+            <h3>AI Learning Roadmap</h3>
+            <p>Generate week-by-week structured curriculum & track milestone progress.</p>
+            <span className="hub-link-text">Open Roadmap →</span>
+          </div>
+
+          <div className="ai-hub-card" onClick={() => navigate("/skill-assessment")}>
+            <div className="hub-card-icon">🧠</div>
+            <h3>AI Skill Assessment</h3>
+            <p>Take adaptive quizzes, test your knowledge, and earn verified profile badges.</p>
+            <span className="hub-link-text">Take Quiz →</span>
+          </div>
+
+          <div className="ai-hub-card" onClick={() => navigate("/resume-analyzer")}>
+            <div className="hub-card-icon">📄</div>
+            <h3>Resume Gap Analyzer</h3>
+            <p>Scan your resume for missing skills and instantly match with teachers.</p>
+            <span className="hub-link-text">Analyze Resume →</span>
+          </div>
+
+          <div className="ai-hub-card" onClick={() => navigate("/sessions")}>
+            <div className="hub-card-icon">📅</div>
+            <h3>Live Peer Sessions</h3>
+            <p>Schedule 1-on-1 skill exchanges, join video meetings, and leave reviews.</p>
+            <span className="hub-link-text">View Sessions →</span>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Skills Matrix Preview */}
       <section className="dashboard-grid">
         {/* TEACH SKILLS */}
         <div className="dashboard-card">
@@ -269,18 +247,22 @@ function Dashboard() {
               <p className="card-tag">WHAT YOU OFFER</p>
               <h2>Skills You Can Teach</h2>
             </div>
-            <span className="card-icon">🎓</span>
+            <Link to="/profile" className="edit-skills-link">Edit ✎</Link>
           </div>
 
           <div className="skills-list">
             {user.teachSkills?.length > 0 ? (
-              user.teachSkills.map((skill, index) => (
-                <span className="teach-tag" key={index}>
-                  {skill}
-                </span>
-              ))
+              user.teachSkills.map((item, index) => {
+                const name = typeof item === "string" ? item : item.skill;
+                const isVer = typeof item === "object" && item.isVerified;
+                return (
+                  <span className="teach-tag" key={index}>
+                    {name} {isVer && "✓"}
+                  </span>
+                );
+              })
             ) : (
-              <p>No teaching skills added yet.</p>
+              <p>No teaching skills added yet. Add some in your profile!</p>
             )}
           </div>
         </div>
@@ -292,31 +274,34 @@ function Dashboard() {
               <p className="card-tag">YOUR GOALS</p>
               <h2>Skills You Want to Learn</h2>
             </div>
-            <span className="card-icon">📚</span>
+            <Link to="/profile" className="edit-skills-link">Edit ✎</Link>
           </div>
 
           <div className="skills-list">
             {user.learnSkills?.length > 0 ? (
-              user.learnSkills.map((skill, index) => (
-                <span className="learn-tag" key={index}>
-                  {skill}
-                </span>
-              ))
+              user.learnSkills.map((item, index) => {
+                const name = typeof item === "string" ? item : item.skill;
+                return (
+                  <span className="learn-tag" key={index}>
+                    {name}
+                  </span>
+                );
+              })
             ) : (
-              <p>No learning skills added yet.</p>
+              <p>No learning goals added yet. Add some in your profile!</p>
             )}
           </div>
         </div>
       </section>
 
-      {/* RECOMMENDED COURSES & BEST TUTORIALS SECTION */}
+      {/* RECOMMENDED COURSES */}
       <section className="dashboard-tutorials-section">
         <div className="dashboard-tutorials-header">
           <div>
             <p className="card-tag">RECOMMENDED FOR YOUR GOALS</p>
             <h2>Top Courses & Best Video Tutorials</h2>
             <p className="tutorials-subtitle">
-              Hand-picked video tutorials and quizzes aligned with your target learning skills.
+              Curated video tutorials aligned with your target learning skills.
             </p>
           </div>
 
@@ -324,7 +309,7 @@ function Dashboard() {
             className="view-all-link-btn"
             onClick={() => navigate("/courses")}
           >
-            Explore All 12+ Tutorials →
+            Explore All Tutorials →
           </button>
         </div>
 
@@ -341,25 +326,6 @@ function Dashboard() {
             />
           ))}
         </div>
-      </section>
-
-      {/* AI Match Section */}
-      <section className="ai-match-card">
-        <div>
-          <p className="dashboard-tag">AI-POWERED RECOMMENDATIONS</p>
-          <h2>Ready to Find Your Perfect Match?</h2>
-          <p>
-            Discover people who can teach you the skills you want to learn and
-            learn from your expertise.
-          </p>
-        </div>
-
-        <button
-          className="find-match-btn"
-          onClick={() => navigate("/matches")}
-        >
-          Find Matches →
-        </button>
       </section>
 
       {/* MODALS */}

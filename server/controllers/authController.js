@@ -1,17 +1,19 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+
 // Email regex validator
 const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
-// REGISTER USER
+// ==========================================
+// 1. REGISTER USER
+// ==========================================
 const registerUser = async (req, res) => {
   try {
     const { name, email, password, teachSkills, learnSkills } = req.body;
 
-    // Check required fields
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "Name, email and password are required",
@@ -20,44 +22,41 @@ const registerUser = async (req, res) => {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Validate email format
     if (!isValidEmail(trimmedEmail)) {
       return res.status(400).json({
         message: "Please enter a valid email address",
       });
     }
 
-    // Validate password length
     if (password.length < 6) {
       return res.status(400).json({
         message: "Password must be at least 6 characters long",
       });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email: trimmedEmail });
-
     if (existingUser) {
       return res.status(400).json({
         message: "User already exists with this email",
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Convert comma-separated skills into arrays
     const teachSkillsArray =
       typeof teachSkills === "string"
-        ? teachSkills.split(",").map((skill) => skill.trim()).filter(Boolean)
-        : teachSkills || [];
+        ? teachSkills.split(",").map((s) => ({ skill: s.trim(), level: "Intermediate", experience: "1 year" })).filter((s) => s.skill)
+        : Array.isArray(teachSkills)
+        ? teachSkills.map((s) => (typeof s === "string" ? { skill: s, level: "Intermediate", experience: "1 year" } : s))
+        : [];
 
     const learnSkillsArray =
       typeof learnSkills === "string"
-        ? learnSkills.split(",").map((skill) => skill.trim()).filter(Boolean)
-        : learnSkills || [];
+        ? learnSkills.split(",").map((s) => ({ skill: s.trim(), currentLevel: "Beginner", targetLevel: "Advanced" })).filter((s) => s.skill)
+        : Array.isArray(learnSkills)
+        ? learnSkills.map((s) => (typeof s === "string" ? { skill: s, currentLevel: "Beginner", targetLevel: "Advanced" } : s))
+        : [];
 
-    // Create user
     const user = await User.create({
       name: name.trim(),
       email: trimmedEmail,
@@ -66,8 +65,15 @@ const registerUser = async (req, res) => {
       learnSkills: learnSkillsArray,
     });
 
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     res.status(201).json({
       message: "User registered successfully",
+      token,
       user: {
         _id: user._id,
         id: user._id,
@@ -84,60 +90,53 @@ const registerUser = async (req, res) => {
     });
   }
 };
-// LOGIN USER
+
+// ==========================================
+// 2. LOGIN USER
+// ==========================================
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check required fields
     if (!email || !password) {
       return res.status(400).json({
         message: "Email and password are required",
       });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
-
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
-    // Generate JWT token
-const token = jwt.sign(
-  {
-    id: user._id,
-    email: user.email,
-  },
-  process.env.JWT_SECRET,
-  {
-    expiresIn: "7d",
-  }
-);
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-res.status(200).json({
-  message: "Login successful",
-  token,
-  user: {
-    _id: user._id,
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    teachSkills: user.teachSkills,
-    learnSkills: user.learnSkills,
-  },
-});
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        _id: user._id,
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar || "",
+        teachSkills: user.teachSkills,
+        learnSkills: user.learnSkills,
+      },
+    });
   } catch (error) {
     res.status(500).json({
       message: "Login failed",
@@ -146,7 +145,189 @@ res.status(200).json({
   }
 };
 
+// ==========================================
+// 3. GOOGLE MAIL LOGIN / OAUTH
+// ==========================================
+const googleAuth = async (req, res) => {
+  try {
+    const { email, name, avatar, googleId } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Google account email is required" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    let user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      // Create new user account via Google
+      const randomPassword = Math.random().toString(36).slice(-10) + "Aa1!";
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await User.create({
+        name: name?.trim() || cleanEmail.split("@")[0],
+        email: cleanEmail,
+        password: hashedPassword,
+        avatar: avatar || "",
+        googleId: googleId || "",
+        bio: "SkillSwap member via Google sign-in.",
+        teachSkills: [
+          { skill: "JavaScript", level: "Intermediate", experience: "1 year" },
+        ],
+        learnSkills: [
+          { skill: "Python", currentLevel: "Beginner", targetLevel: "Advanced" },
+        ],
+      });
+    } else {
+      if (avatar && !user.avatar) user.avatar = avatar;
+      if (googleId && !user.googleId) user.googleId = googleId;
+      await user.save();
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      message: "Google sign-in successful! Welcome to SkillSwap AI.",
+      token,
+      user: {
+        _id: user._id,
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar || "",
+        teachSkills: user.teachSkills,
+        learnSkills: user.learnSkills,
+      },
+    });
+  } catch (error) {
+    console.error("Google Auth Error:", error);
+    res.status(500).json({ message: "Google authentication failed", error: error.message });
+  }
+};
+
+// ==========================================
+// 4. FORGOTTEN PASSWORD: SEND RESET OTP
+// ==========================================
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email address is required" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      return res.status(404).json({ message: "No account found with this email address" });
+    }
+
+    // Generate secure 6-digit numeric OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins validity
+
+    user.resetPasswordOTP = otp;
+    user.resetPasswordExpires = expires;
+    await user.save();
+
+    console.log(`[PASSWORD RESET OTP] For ${cleanEmail}: ${otp}`);
+
+    res.status(200).json({
+      success: true,
+      message: `Password reset code sent to ${cleanEmail}. Enter the 6-digit code to continue.`,
+      email: cleanEmail,
+      otp, // Provided for instant verification & testing in development
+    });
+  } catch (error) {
+    console.error("Forgot Password Error:", error);
+    res.status(500).json({ message: "Failed to process password reset", error: error.message });
+  }
+};
+
+// ==========================================
+// 5. VERIFY RESET OTP
+// ==========================================
+const verifyResetOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and 6-digit OTP code are required" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({
+      email: cleanEmail,
+      resetPasswordOTP: otp.trim(),
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired reset code. Please request a new one." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Reset code verified! Please set your new password.",
+    });
+  } catch (error) {
+    console.error("Verify OTP Error:", error);
+    res.status(500).json({ message: "Verification failed", error: error.message });
+  }
+};
+
+// ==========================================
+// 6. RESET PASSWORD WITH NEW PASSWORD
+// ==========================================
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "Email, OTP code, and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters long" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({
+      email: cleanEmail,
+      resetPasswordOTP: otp.trim(),
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired reset code. Please restart the reset process." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordOTP = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "🎉 Password successfully reset! You can now log in with your new password.",
+    });
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    res.status(500).json({ message: "Failed to reset password", error: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  googleAuth,
+  forgotPassword,
+  verifyResetOTP,
+  resetPassword,
 };

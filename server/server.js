@@ -13,6 +13,10 @@ const userRoutes = require("./routes/userRoutes");
 const connectionRoutes = require("./routes/connectionRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const compilerRoutes = require("./routes/compilerRoutes");
+const aiRoutes = require("./routes/aiRoutes");
+const sessionRoutes = require("./routes/sessionRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 connectDB();
 
@@ -46,6 +50,10 @@ app.use("/api/users", userRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/compiler", compilerRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/sessions", sessionRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Test route
 app.get("/", (req, res) => {

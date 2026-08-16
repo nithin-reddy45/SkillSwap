@@ -87,6 +87,12 @@ router.get(
   getUnreadCountsBySender
 );
 
+router.get(
+  "/unread-by-sender",
+  protect,
+  getUnreadCountsBySender
+);
+
 // GET CONVERSATION
 router.get(
   "/:userId",

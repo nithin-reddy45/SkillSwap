@@ -129,46 +129,6 @@
   background: #94a3b8;
 }
 
-/* CALL ACTIONS IN HEADER */
-.chat-call-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.call-action-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  background: var(--bg-alt);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 17px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: var(--shadow-sm);
-}
-
-.call-action-btn:hover {
-  transform: translateY(-2px) scale(1.05);
-  border-color: var(--brand-primary);
-  background: var(--brand-gradient);
-  color: white;
-  box-shadow: 0 4px 14px var(--brand-glow);
-}
-
-.call-action-btn.voice:hover {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);
-}
-
-.call-action-btn.video:hover {
-  background: var(--brand-gradient);
-}
 
 /* ================= SEARCH BAR ================= */
 

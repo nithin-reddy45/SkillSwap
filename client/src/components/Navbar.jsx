@@ -12,6 +12,7 @@ function Navbar() {
 
   const [requestCount, setRequestCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -24,13 +25,19 @@ function Navbar() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const [isAiDropdownOpen, setIsAiDropdownOpen] = useState(false);
 
-  // Close dropdown on outside click
+  const dropdownRef = useRef(null);
+  const aiDropdownRef = useRef(null);
+
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsProfileDropdownOpen(false);
+      }
+      if (aiDropdownRef.current && !aiDropdownRef.current.contains(e.target)) {
+        setIsAiDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -41,6 +48,7 @@ function Navbar() {
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsProfileDropdownOpen(false);
+    setIsAiDropdownOpen(false);
   }, [location.pathname]);
 
   // Listen for auth state changes across the app
@@ -77,6 +85,7 @@ function Navbar() {
 
     setRequestCount(0);
     setUnreadCount(0);
+    setNotifCount(0);
     setToken(null);
     setCurrentUser(null);
     setIsProfileDropdownOpen(false);
@@ -131,14 +140,31 @@ function Navbar() {
       }
     };
 
+    // Fetch in-app notifications unread count
+    const fetchNotifCount = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+          headers: { Authorization: `Bearer ${currentToken}` },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        setNotifCount(data.unreadCount || 0);
+      } catch (error) {
+        console.error("Notif Count Error:", error);
+      }
+    };
+
     fetchRequestCount();
     fetchUnreadCount();
+    fetchNotifCount();
 
     const handleRequestUpdated = () => fetchRequestCount();
     const handleMessageRead = () => fetchUnreadCount();
+    const handleNotifUpdated = () => fetchNotifCount();
 
     window.addEventListener("requestUpdated", handleRequestUpdated);
     window.addEventListener("messageRead", handleMessageRead);
+    window.addEventListener("notificationUpdated", handleNotifUpdated);
 
     if (!socket.connected) {
       socket.connect();
@@ -151,13 +177,14 @@ function Navbar() {
     return () => {
       window.removeEventListener("requestUpdated", handleRequestUpdated);
       window.removeEventListener("messageRead", handleMessageRead);
+      window.removeEventListener("notificationUpdated", handleNotifUpdated);
       socket.off("receiveMessage", handleReceiveMessage);
     };
   }, [token]);
 
   // User initials for avatar
   const userInitials = currentUser?.name
-    ? currentUser.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    ? currentUser.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
 
   return (
@@ -165,7 +192,7 @@ function Navbar() {
       <nav className="navbar-container">
         
         {/* BRAND LOGO */}
-        <Link to="/" className="navbar-brand">
+        <Link to={token ? "/dashboard" : "/"} className="navbar-brand">
           <div className="brand-logo-icon">
             <span>⚡</span>
           </div>
@@ -175,97 +202,168 @@ function Navbar() {
           </div>
         </Link>
 
-        {/* DESKTOP NAVIGATION LINKS */}
+        {/* PRIMARY FOCUSED NAVIGATION LINKS */}
         <div className="navbar-nav-center">
+          {token ? (
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            >
+              <span className="nav-icon">📊</span>
+              <span>Dashboard</span>
+            </NavLink>
+          ) : (
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            >
+              <span className="nav-icon">🏠</span>
+              <span>Home</span>
+            </NavLink>
+          )}
+
           <NavLink
-            to="/"
-            end
+            to="/matches"
             className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
           >
-            <span className="nav-icon">🏠</span>
-            <span>Home</span>
+            <span className="nav-icon">🔍</span>
+            <span>Find Matches</span>
           </NavLink>
 
           <NavLink
-            to="/courses"
+            to="/connections"
             className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
           >
-            <span className="nav-icon">🎓</span>
-            <span>Tutorials</span>
+            <span className="nav-icon">🤝</span>
+            <span>Connections</span>
           </NavLink>
 
           <NavLink
-            to="/coding-test"
+            to="/sessions"
             className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
           >
-            <span className="nav-icon">⚡</span>
-            <span>Coding Arena</span>
-            <span className="nav-highlight-dot"></span>
+            <span className="nav-icon">📅</span>
+            <span>Sessions</span>
           </NavLink>
 
           {token && (
-            <>
-              <NavLink
-                to="/dashboard"
-                className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-              >
-                <span className="nav-icon">📊</span>
-                <span>Dashboard</span>
-              </NavLink>
-
-              <NavLink
-                to="/matches"
-                className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-              >
-                <span className="nav-icon">🔍</span>
-                <span>Find Matches</span>
-              </NavLink>
-
-              <NavLink
-                to="/requests"
-                className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-              >
-                <span className="nav-icon">📬</span>
-                <span>Requests</span>
-                {requestCount > 0 && (
-                  <span className="nav-pill-badge">{requestCount > 99 ? "99+" : requestCount}</span>
-                )}
-              </NavLink>
-
-              <NavLink
-                to="/connections"
-                className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-              >
-                <span className="nav-icon">🤝</span>
-                <span>Connections</span>
-              </NavLink>
-
-              <NavLink
-                to="/messages"
-                className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-              >
-                <span className="nav-icon">💬</span>
-                <span>Messages</span>
-                {unreadCount > 0 && (
-                  <span className="nav-pill-badge message-color">{unreadCount > 99 ? "99+" : unreadCount}</span>
-                )}
-              </NavLink>
-            </>
+            <NavLink
+              to="/messages"
+              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            >
+              <span className="nav-icon">💬</span>
+              <span>Messages</span>
+              {unreadCount > 0 && (
+                <span className="nav-pill-badge message-color">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </NavLink>
           )}
+
+          {/* AI LEARNING DROPDOWN */}
+          <div className="ai-nav-dropdown-wrapper" ref={aiDropdownRef}>
+            <button
+              type="button"
+              className={`nav-item ai-drop-btn ${
+                location.pathname === "/roadmap" ||
+                location.pathname === "/skill-assessment" ||
+                location.pathname === "/coding-test"
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() => setIsAiDropdownOpen(!isAiDropdownOpen)}
+            >
+              <span className="nav-icon">🗺️</span>
+              <span>AI Learning</span>
+              <span className="nav-drop-arrow">▾</span>
+            </button>
+
+            {isAiDropdownOpen && (
+              <div className="ai-nav-menu-card">
+                <Link
+                  to="/roadmap"
+                  className="ai-menu-link"
+                  onClick={() => setIsAiDropdownOpen(false)}
+                >
+                  <span className="menu-icon">🗺️</span>
+                  <div>
+                    <strong>AI Learning Roadmap</strong>
+                    <p>Structured milestones & weekly checklists</p>
+                  </div>
+                </Link>
+                <Link
+                  to="/skill-assessment"
+                  className="ai-menu-link"
+                  onClick={() => setIsAiDropdownOpen(false)}
+                >
+                  <span className="menu-icon">🧠</span>
+                  <div>
+                    <strong>AI Skill Assessment</strong>
+                    <p>Adaptive quizzes & verified badges</p>
+                  </div>
+                </Link>
+                <Link
+                  to="/coding-test"
+                  className="ai-menu-link"
+                  onClick={() => setIsAiDropdownOpen(false)}
+                >
+                  <span className="menu-icon">⚡</span>
+                  <div>
+                    <strong>Coding Arena & Sandbox</strong>
+                    <p>Hands-on compiler & verified tests</p>
+                  </div>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <NavLink
+            to="/resume-analyzer"
+            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+          >
+            <span className="nav-icon">📄</span>
+            <span>Career Assistant</span>
+          </NavLink>
+
+          <NavLink
+            to="/leaderboard"
+            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+          >
+            <span className="nav-icon">🏆</span>
+            <span>Leaderboard</span>
+          </NavLink>
         </div>
 
-        {/* RIGHT CONTROLS: THEME TOGGLE, PROFILE / AUTH */}
+        {/* RIGHT CONTROLS: NOTIFICATIONS, THEME TOGGLE, PROFILE / AUTH */}
         <div className="navbar-controls-right">
           
           {/* Theme Toggle Button */}
           <button
             className="theme-switch-btn"
             onClick={toggleTheme}
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
             aria-label="Toggle Theme"
           >
             <span className="theme-icon">{theme === "dark" ? "☀️" : "🌙"}</span>
           </button>
+
+          {token && (
+            /* NOTIFICATIONS BELL */
+            <Link
+              to="/notifications"
+              className={`notif-bell-btn ${location.pathname === "/notifications" ? "active" : ""}`}
+              title="Activity & Notifications"
+            >
+              <span className="bell-icon">🔔</span>
+              {notifCount > 0 && (
+                <span className="notif-count-badge">
+                  {notifCount > 9 ? "9+" : notifCount}
+                </span>
+              )}
+            </Link>
+          )}
 
           {token ? (
             /* USER PROFILE CAPSULE & DROPDOWN */
@@ -303,11 +401,14 @@ function Navbar() {
                   <Link to="/dashboard" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
                     <span>📊</span> Learning Dashboard
                   </Link>
-                  <Link to="/coding-test" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
-                    <span>⚡</span> Coding Challenges & Arena
+                  <Link to="/requests" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
+                    <span>📬</span> Connection Requests {requestCount > 0 && <span className="dropdown-mini-badge">{requestCount}</span>}
                   </Link>
-                  <Link to="/courses" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
-                    <span>🎓</span> Curated Tutorials
+                  <Link to="/sessions" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
+                    <span>📅</span> My Learning Sessions
+                  </Link>
+                  <Link to="/notifications" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
+                    <span>🔔</span> Notifications Center
                   </Link>
 
                   <div className="dropdown-divider" />
@@ -319,83 +420,130 @@ function Navbar() {
               )}
             </div>
           ) : (
-            /* GUEST AUTH BUTTONS */
             <div className="auth-buttons-group">
-              <Link to="/login" className="nav-btn-login">
+              <Link to="/login" className="login-btn-ghost">
                 Sign In
               </Link>
-              <Link to="/register" className="nav-btn-register">
-                Get Started →
+              <Link to="/register" className="register-btn-glow">
+                Get Started
               </Link>
             </div>
           )}
 
           {/* MOBILE HAMBURGER BUTTON */}
           <button
-            className={`mobile-hamburger-btn ${isMobileMenuOpen ? "open" : ""}`}
+            className="mobile-hamburger-btn"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle navigation menu"
+            aria-label="Toggle Navigation Menu"
           >
-            <span className="hamburger-line"></span>
-            <span className="hamburger-line"></span>
-            <span className="hamburger-line"></span>
+            <span className="hamburger-bar"></span>
+            <span className="hamburger-bar"></span>
+            <span className="hamburger-bar"></span>
           </button>
-
         </div>
 
       </nav>
 
-      {/* MOBILE DRAWER NAVIGATION */}
+      {/* MOBILE DRAWER */}
       {isMobileMenuOpen && (
-        <div className="mobile-drawer-menu">
-          <div className="mobile-links-list">
-            <NavLink to="/" end className="mobile-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
-              <span>🏠</span> Home
-            </NavLink>
-            <NavLink to="/courses" className="mobile-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
-              <span>🎓</span> Tutorials & Courses
-            </NavLink>
-            <NavLink to="/coding-test" className="mobile-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
-              <span>⚡</span> Coding Arena & Tests
-            </NavLink>
+        <div className="mobile-drawer-overlay">
+          <div className="mobile-drawer-card">
+            
+            <div className="drawer-header">
+              <div className="drawer-brand">
+                <span className="brand-logo-icon">⚡</span>
+                <span className="brand-title">SkillSwap AI</span>
+              </div>
+              <button
+                className="drawer-close-btn"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
 
-            {token ? (
-              <>
-                <NavLink to="/dashboard" className="mobile-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
+            <div className="mobile-nav-links">
+              {token ? (
+                <NavLink to="/dashboard" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
                   <span>📊</span> Dashboard
                 </NavLink>
-                <NavLink to="/matches" className="mobile-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
-                  <span>🔍</span> Find Matches
+              ) : (
+                <NavLink to="/" end className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                  <span>🏠</span> Home
                 </NavLink>
-                <NavLink to="/requests" className="mobile-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
-                  <span>📬</span> Connection Requests {requestCount > 0 && <span className="drawer-badge">{requestCount}</span>}
+              )}
+
+              <NavLink to="/matches" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                <span>🔍</span> Find Matches
+              </NavLink>
+
+              <NavLink to="/connections" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                <span>🤝</span> Connections
+              </NavLink>
+
+              <NavLink to="/sessions" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                <span>📅</span> Sessions
+              </NavLink>
+
+              {token && (
+                <NavLink to="/messages" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                  <span>💬</span> Messages {unreadCount > 0 && <span className="mobile-badge">{unreadCount}</span>}
                 </NavLink>
-                <NavLink to="/connections" className="mobile-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
-                  <span>🤝</span> My Connections
+              )}
+
+              <NavLink to="/roadmap" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                <span>🗺️</span> AI Roadmap
+              </NavLink>
+
+              <NavLink to="/skill-assessment" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                <span>🧠</span> AI Skill Assessment
+              </NavLink>
+
+              <NavLink to="/coding-test" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                <span>⚡</span> Arena Sandbox
+              </NavLink>
+
+              <NavLink to="/resume-analyzer" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                <span>📄</span> Career Assistant
+              </NavLink>
+
+              <NavLink to="/leaderboard" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                <span>🏆</span> Leaderboard
+              </NavLink>
+
+              {token && (
+                <NavLink to="/notifications" className="mobile-link" onClick={() => setIsMobileMenuOpen(false)}>
+                  <span>🔔</span> Notifications {notifCount > 0 && <span className="mobile-badge">{notifCount}</span>}
                 </NavLink>
-                <NavLink to="/messages" className="mobile-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
-                  <span>💬</span> Messages {unreadCount > 0 && <span className="drawer-badge">{unreadCount}</span>}
-                </NavLink>
-                <NavLink to="/profile" className="mobile-nav-item" onClick={() => setIsMobileMenuOpen(false)}>
-                  <span>👤</span> My Profile
-                </NavLink>
-                <button className="mobile-logout-btn" onClick={handleLogout}>
-                  <span>🚪</span> Sign Out
-                </button>
-              </>
-            ) : (
-              <div className="mobile-auth-row">
-                <Link to="/login" className="mobile-login-btn" onClick={() => setIsMobileMenuOpen(false)}>
-                  Sign In
-                </Link>
-                <Link to="/register" className="mobile-register-btn" onClick={() => setIsMobileMenuOpen(false)}>
-                  Get Started →
-                </Link>
-              </div>
-            )}
+              )}
+            </div>
+
+            <div className="mobile-drawer-footer">
+              {token ? (
+                <div className="mobile-user-actions">
+                  <Link to="/profile" className="mobile-profile-btn" onClick={() => setIsMobileMenuOpen(false)}>
+                    <span>👤</span> {currentUser?.name || "Profile"}
+                  </Link>
+                  <button className="mobile-logout-btn" onClick={handleLogout}>
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="mobile-auth-actions">
+                  <Link to="/login" className="mobile-login-btn" onClick={() => setIsMobileMenuOpen(false)}>
+                    Sign In
+                  </Link>
+                  <Link to="/register" className="mobile-register-btn" onClick={() => setIsMobileMenuOpen(false)}>
+                    Get Started
+                  </Link>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       )}
+
     </header>
   );
 }

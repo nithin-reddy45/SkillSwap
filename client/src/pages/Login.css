@@ -6,6 +6,7 @@
   align-items: center;
   background: var(--bg-main);
   color: var(--text-primary);
+  font-family: var(--font-main);
 }
 
 .login-container {
@@ -22,7 +23,7 @@
 
 .login-header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .login-tag {
@@ -45,6 +46,77 @@
 .login-header p {
   color: var(--text-secondary);
   font-size: 14px;
+  margin: 0;
+}
+
+.login-error-banner {
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* GOOGLE SIGN IN BUTTON */
+.google-signin-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  margin-bottom: 20px;
+}
+
+.google-signin-btn:hover:not(:disabled) {
+  border-color: var(--brand-primary);
+  background: var(--bg-alt);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.google-signin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.login-divider-row {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.login-divider-row::before,
+.login-divider-row::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.login-divider-row span {
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .login-form {
@@ -68,9 +140,14 @@
   cursor: pointer;
 }
 
-.login-options a {
+.forgot-link {
   color: var(--brand-primary);
-  font-weight: 600;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
 }
 
 .login-btn {
@@ -82,11 +159,11 @@
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 16px var(--brand-glow);
+  box-shadow: var(--shadow-glow);
   transition: all var(--transition-fast);
 }
 
-.login-btn:hover {
+.login-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px var(--brand-glow);
 }
@@ -100,10 +177,15 @@
   text-align: center;
   font-size: 14px;
   color: var(--text-secondary);
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .register-link a {
   color: var(--brand-primary);
   font-weight: 700;
+  text-decoration: none;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
 }

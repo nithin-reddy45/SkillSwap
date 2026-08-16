@@ -23,11 +23,6 @@ function Chat() {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
 
-  // Video / Voice Calls
-  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [activeCallType, setActiveCallType] = useState("video"); // "video" | "voice"
-  const [isCallInitiator, setIsCallInitiator] = useState(true);
-  const [incomingCallInfo, setIncomingCallInfo] = useState(null);
 
   // Edit
   const [editingMessageId, setEditingMessageId] =
@@ -398,47 +393,6 @@ function Chat() {
     userId,
   ]);
 
-  // Start voice call
-  const handleStartVoiceCall = () => {
-    const partner =
-      location.state?.selectedUser ||
-      connections.find(
-        (c) =>
-          String(c.user?._id) === String(userId) ||
-          String(c.user?.id) === String(userId)
-      )?.user;
-
-    window.dispatchEvent(
-      new CustomEvent("startCall", {
-        detail: {
-          partnerId: userId,
-          partnerName: partner?.name || "Skill Partner",
-          isVideo: false,
-        },
-      })
-    );
-  };
-
-  // Start video call
-  const handleStartVideoCall = () => {
-    const partner =
-      location.state?.selectedUser ||
-      connections.find(
-        (c) =>
-          String(c.user?._id) === String(userId) ||
-          String(c.user?.id) === String(userId)
-      )?.user;
-
-    window.dispatchEvent(
-      new CustomEvent("startCall", {
-        detail: {
-          partnerId: userId,
-          partnerName: partner?.name || "Skill Partner",
-          isVideo: true,
-        },
-      })
-    );
-  };
 
   // ================= FETCH MESSAGES =================
 
@@ -1161,25 +1115,6 @@ function Chat() {
                 </div>
               </div>
 
-              {/* VOICE & VIDEO CALL BUTTONS */}
-              <div className="chat-call-actions">
-                <button
-                  type="button"
-                  className="call-action-btn voice"
-                  onClick={handleStartVoiceCall}
-                  title="Start Voice Call"
-                >
-                  📞
-                </button>
-                <button
-                  type="button"
-                  className="call-action-btn video"
-                  onClick={handleStartVideoCall}
-                  title="Start Video Call"
-                >
-                  📹
-                </button>
-              </div>
             </div>
           );
         })()}

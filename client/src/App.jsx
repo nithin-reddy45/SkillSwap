@@ -1,31 +1,36 @@
-import { Routes, Route } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
 import { socket } from "./socket";
 
 import Navbar from "./components/Navbar.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
-import CallModal from "./components/CallModal.jsx";
+import AiAssistantModal from "./components/AiAssistantModal.jsx";
 
 import NotFound from "./pages/NotFound.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
 import Courses from "./pages/Courses.jsx";
 import CodingTests from "./pages/CodingTests.jsx";
+import Roadmap from "./pages/Roadmap.jsx";
+import SkillAssessment from "./pages/SkillAssessment.jsx";
+import ResumeAnalyzer from "./pages/ResumeAnalyzer.jsx";
+import Leaderboard from "./pages/Leaderboard.jsx";
 
 import Dashboard from "./pages/Dashboard.jsx";
 import FindMatches from "./pages/FindMatches.jsx";
 import Requests from "./pages/Requests.jsx";
-import MyConnections from "./pages/MyConnections.jsx";
+import Connections from "./pages/Connections.jsx";
+import Sessions from "./pages/Sessions.jsx";
+import Notifications from "./pages/Notifications.jsx";
 import Profile from "./pages/Profile.jsx";
 import Messages from "./pages/Messages.jsx";
 import Chat from "./pages/Chat.jsx";
 
 function App() {
-  const [activeCall, setActiveCall] = useState(null);
-
   // =========================
-  // SOCKET CONNECTION & GLOBAL CALL LISTENER
+  // SOCKET CONNECTION
   // =========================
   useEffect(() => {
     const connectSocket = () => {
@@ -53,48 +58,12 @@ function App() {
         }
 
       } catch (error) {
-        console.error(
-          "Error connecting socket:",
-          error
-        );
+        console.error("Error connecting socket:", error);
       }
     };
 
     connectSocket();
-
-    // Global incoming call handler from Socket
-    const handleIncomingCall = (data) => {
-      setActiveCall({
-        partnerId: data.from,
-        partnerName: data.fromName || "Skill Partner",
-        isVideo: data.isVideo,
-        isInitiator: false,
-        incomingCallData: data,
-      });
-    };
-
-    // Global start call handler triggered from Chat or anywhere
-    const handleStartCall = (event) => {
-      const { partnerId, partnerName, isVideo } = event.detail;
-      setActiveCall({
-        partnerId,
-        partnerName,
-        isVideo,
-        isInitiator: true,
-        incomingCallData: null,
-      });
-    };
-
-    socket.on("incomingCall", handleIncomingCall);
-    window.addEventListener("startCall", handleStartCall);
-
-    return () => {
-      socket.off("incomingCall", handleIncomingCall);
-      window.removeEventListener("startCall", handleStartCall);
-    };
-
   }, []);
-
 
   return (
     <>
@@ -103,49 +72,31 @@ function App() {
       <Routes>
 
         {/* ========================= */}
-        {/* PUBLIC ROUTES */}
+        {/* PUBLIC & AI TOOLS ROUTES */}
         {/* ========================= */}
 
-        <Route
-          path="/"
-          element={<Home />}
-        />
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
 
-        <Route
-          path="/login"
-          element={<Login />}
-        />
+        {/* Courses & Tutorials Unified */}
+        <Route path="/courses" element={<Courses />} />
+        <Route path="/tutorials" element={<Courses />} />
 
-        <Route
-          path="/register"
-          element={<Register />}
-        />
+        {/* AI Learning & Guidance */}
+        <Route path="/roadmap" element={<Roadmap />} />
+        <Route path="/skill-assessment" element={<SkillAssessment />} />
+        <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
 
-        <Route
-          path="/courses"
-          element={<Courses />}
-        />
-        <Route
-          path="/tutorials"
-          element={<Courses />}
-        />
-
-        <Route
-          path="/coding-test"
-          element={<CodingTests />}
-        />
-        <Route
-          path="/coding-test/:testId"
-          element={<CodingTests />}
-        />
-        <Route
-          path="/arena"
-          element={<CodingTests />}
-        />
-
+        {/* Coding Arena */}
+        <Route path="/coding-test" element={<CodingTests />} />
+        <Route path="/coding-test/:testId" element={<CodingTests />} />
+        <Route path="/arena" element={<CodingTests />} />
 
         {/* ========================= */}
-        {/* PROTECTED ROUTES */}
+        {/* PROTECTED USER ROUTES */}
         {/* ========================= */}
 
         {/* DASHBOARD */}
@@ -158,7 +109,6 @@ function App() {
           }
         />
 
-
         {/* PROFILE */}
         <Route
           path="/profile"
@@ -168,7 +118,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
 
         {/* FIND MATCHES */}
         <Route
@@ -181,13 +130,8 @@ function App() {
         />
         <Route
           path="/find-matches"
-          element={
-            <ProtectedRoute>
-              <FindMatches />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/matches" replace />}
         />
-
 
         {/* CONNECTION REQUESTS */}
         <Route
@@ -199,27 +143,41 @@ function App() {
           }
         />
 
-
-        {/* MY CONNECTIONS */}
+        {/* CONNECTIONS */}
         <Route
           path="/connections"
           element={
             <ProtectedRoute>
-              <MyConnections />
+              <Connections />
             </ProtectedRoute>
           }
         />
         <Route
           path="/my-connections"
+          element={<Navigate to="/connections" replace />}
+        />
+
+        {/* SESSIONS HUB */}
+        <Route
+          path="/sessions"
           element={
             <ProtectedRoute>
-              <MyConnections />
+              <Sessions />
             </ProtectedRoute>
           }
         />
 
+        {/* NOTIFICATIONS CENTER */}
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* MESSAGES */}
+        {/* MESSAGES & CHAT */}
         <Route
           path="/messages"
           element={
@@ -229,8 +187,6 @@ function App() {
           }
         />
 
-
-        {/* CHAT */}
         <Route
           path="/chat/:userId"
           element={
@@ -240,49 +196,16 @@ function App() {
           }
         />
 
-
         {/* ========================= */}
         {/* NOT FOUND */}
         {/* ========================= */}
 
-        <Route
-          path="*"
-          element={<NotFound />}
-        />
+        <Route path="*" element={<NotFound />} />
 
       </Routes>
 
-      {/* GLOBAL WEBRTC CALL MODAL (CALLER & RECEIVER) */}
-      {activeCall && (
-        <CallModal
-          isOpen={!!activeCall}
-          onClose={() => setActiveCall(null)}
-          callType={activeCall.isVideo ? "video" : "voice"}
-          partnerId={activeCall.partnerId}
-          partnerName={activeCall.partnerName || "Skill Partner"}
-          currentUserId={
-            (() => {
-              try {
-                const u = JSON.parse(localStorage.getItem("user"));
-                return u?._id || u?.id;
-              } catch {
-                return null;
-              }
-            })()
-          }
-          currentUserName={
-            (() => {
-              try {
-                return JSON.parse(localStorage.getItem("user"))?.name || "User";
-              } catch {
-                return "User";
-              }
-            })()
-          }
-          incomingCallData={activeCall.incomingCallData}
-          isInitiator={activeCall.isInitiator}
-        />
-      )}
+      {/* GLOBAL FLOATING AI COPILOT */}
+      <AiAssistantModal />
     </>
   );
 }

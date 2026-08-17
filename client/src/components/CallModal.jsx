@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { socket } from "../socket";
 import "./CallModal.css";
 
@@ -46,6 +46,39 @@ function CallModal({
   const timerRef = useRef(null);
 
   const isVideo = callType === "video";
+
+  // ================= END CALL AND HARDWARE CLEANUP =================
+  const handleEndCall = useCallback((notifyPeer = true) => {
+    if (notifyPeer) {
+      const targetId = isInitiator ? partnerId : incomingCallData?.from;
+      if (targetId) {
+        socket.emit("endCall", { to: targetId });
+      }
+    }
+
+    // Stop local camera & mic
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+    }
+
+    // Stop screen share
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+    }
+
+    // Close WebRTC connection
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    remoteStreamRef.current = new MediaStream();
+    iceCandidatesQueue.current = [];
+    setCallState("ended");
+    onClose();
+  }, [isInitiator, partnerId, incomingCallData, onClose]);
 
   // ================= CALL TIMER =================
   useEffect(() => {
@@ -323,40 +356,8 @@ function CallModal({
       socket.off("callEnded", handleCallEnded);
       socket.off("callRejected", handleCallRejected);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
-
-  // ================= END CALL AND HARDWARE CLEANUP =================
-  const handleEndCall = (notifyPeer = true) => {
-    if (notifyPeer) {
-      const targetId = isInitiator ? partnerId : incomingCallData?.from;
-      if (targetId) {
-        socket.emit("endCall", { to: targetId });
-      }
-    }
-
-    // Stop local camera & mic
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
-      localStreamRef.current = null;
-    }
-
-    // Stop screen share
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach((track) => track.stop());
-      screenStreamRef.current = null;
-    }
-
-    // Close WebRTC connection
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-
-    remoteStreamRef.current = new MediaStream();
-    iceCandidatesQueue.current = [];
-    setCallState("ended");
-    onClose();
-  };
 
   // ================= CONTROLS =================
   const toggleMute = () => {

@@ -73,7 +73,7 @@ export async function executeStandaloneCode(code, languageId = "javascript", std
       let executableCode = code;
       if (langKey === "typescript") {
         executableCode = code
-          .replace(/:\s*[A-Za-z0-9_<>\[\]|]+/g, '')
+          .replace(/:\s*[A-Za-z0-9_<>[\\]|]+/g, '')
           .replace(/interface\s+[A-Za-z0-9_]+\s*\{[^}]*\}/g, '')
           .replace(/type\s+[A-Za-z0-9_]+\s*=[^;]+;/g, '');
       }
@@ -195,7 +195,7 @@ export async function runProblemTestCasesAsync(problem, userCode, runHidden = fa
         let executableCode = userCode;
         if (langKey === "typescript") {
           executableCode = userCode
-            .replace(/:\s*[A-Za-z0-9_<>\[\]|]+/g, '')
+            .replace(/:\s*[A-Za-z0-9_<>[\\]|]+/g, '')
             .replace(/interface\s+[A-Za-z0-9_]+\s*\{[^}]*\}/g, '')
             .replace(/type\s+[A-Za-z0-9_]+\s*=[^;]+;/g, '');
         }

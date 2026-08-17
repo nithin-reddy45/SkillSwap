@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { socket } from "../socket";
 import { API_BASE_URL } from "../config/api";
+import { handleAuthError } from "../utils/auth";
 import ScheduleSessionModal from "../components/ScheduleSessionModal";
 import "./Connections.css";
 
@@ -43,6 +44,8 @@ function Connections() {
             },
           }
         );
+
+        if (handleAuthError(response, navigate)) return;
 
         const data = await response.json();
 

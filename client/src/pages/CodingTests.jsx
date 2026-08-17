@@ -26,9 +26,11 @@ function CodingTests() {
   const activeTest = useMemo(() => {
     if (!testId) return null;
     return getCodingTestById(testId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testId, testsList]);
 
-  const history = useMemo(() => getTestHistory(), [activeTest, activeTab]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const history = useMemo(() => getTestHistory(), [activeTab, activeTest]);
 
   const refreshTests = () => {
     setTestsList(getAllCodingTests());

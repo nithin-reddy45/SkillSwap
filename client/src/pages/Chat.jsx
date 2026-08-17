@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { socket } from "../socket";
 import { API_BASE_URL } from "../config/api";
+import { handleAuthError } from "../utils/auth";
 import "./Chat.css";
 
 function Chat() {
@@ -474,6 +475,8 @@ function Chat() {
         const data =
           await response.json();
 
+        if (handleAuthError(response, navigate)) return;
+
         if (!response.ok) {
           setError(
             data.message ||
@@ -550,6 +553,8 @@ function Chat() {
         const data =
           await response.json();
 
+        if (handleAuthError(response, navigate)) return;
+
         if (!response.ok) {
           console.error(
             data.message ||
@@ -576,7 +581,7 @@ function Chat() {
     };
 
     fetchConnections();
-  }, []);
+  }, [navigate]);
 
   // ================= TYPING =================
 

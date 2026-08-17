@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
+import { handleAuthError } from "../utils/auth";
 import ReviewModal from "../components/ReviewModal";
 import ScheduleSessionModal from "../components/ScheduleSessionModal";
 import "./Sessions.css";
@@ -12,6 +13,9 @@ function Sessions() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" | "pending" | "completed"
 
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUserId = currentUser._id || currentUser.id;
+
   // Connections for modal
   const [connections, setConnections] = useState([]);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
@@ -20,7 +24,9 @@ function Sessions() {
   // Review Modal State
   const [reviewSession, setReviewSession] = useState(null);
 
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
+    setLoading(true);
+    setError("");
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -31,6 +37,8 @@ function Sessions() {
       const response = await fetch(`${API_BASE_URL}/api/sessions/my-sessions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (handleAuthError(response, navigate)) return;
 
       const data = await response.json();
       if (!response.ok) {
@@ -43,14 +51,14 @@ function Sessions() {
         completed: data.completed || [],
       });
     } catch (err) {
-      console.error("Sessions error:", err);
-      setError("Unable to load sessions.");
+      console.error("Sessions fetch error:", err);
+      setError(err.message || "Unable to load sessions.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const fetchConnections = async () => {
+  const fetchConnections = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
@@ -66,12 +74,12 @@ function Sessions() {
     } catch (err) {
       console.error("Connections error:", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSessions();
     fetchConnections();
-  }, []);
+  }, [fetchSessions, fetchConnections]);
 
   const handleUpdateStatus = async (sessionId, newStatus) => {
     try {
@@ -98,15 +106,6 @@ function Sessions() {
       alert("Unable to update session.");
     }
   };
-
-  const currentUserId = (() => {
-    try {
-      const u = JSON.parse(localStorage.getItem("user"));
-      return u?._id || u?.id;
-    } catch {
-      return null;
-    }
-  })();
 
   const getGoogleCalendarUrl = (session) => {
     const title = encodeURIComponent(`SkillSwap: ${session.topic || session.skill}`);
@@ -245,8 +244,6 @@ function Sessions() {
             ) : (
               activeList.map((session) => {
                 const isMentor = String(session.mentor?._id || session.mentor?.id) === String(currentUserId);
-                const partner = isMentor ? session.learner : session.mentor;
-                const partnerName = partner?.name || "Skill Partner";
                 const dateObj = new Date(session.scheduledAt);
                 const formattedDate = dateObj.toLocaleDateString("en-US", {
                   weekday: "short",

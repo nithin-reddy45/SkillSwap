@@ -197,6 +197,13 @@ function Register() {
           <button type="submit" className="register-btn">
             Create Account
           </button>
+
+          <p className="auth-redirect-text" style={{ textAlign: "center", marginTop: "1rem", color: "var(--text-secondary, #94a3b8)" }}>
+            Already have an account?{" "}
+            <Link to="/login" style={{ color: "var(--primary-color, #6366f1)", fontWeight: 600, textDecoration: "none" }}>
+              Sign In
+            </Link>
+          </p>
         </form>
       </div>
     </div>

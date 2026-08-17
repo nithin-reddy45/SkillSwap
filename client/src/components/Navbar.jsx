@@ -46,9 +46,12 @@ function Navbar() {
 
   // Close mobile menu on route change
   useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setIsProfileDropdownOpen(false);
-    setIsAiDropdownOpen(false);
+    const timer = setTimeout(() => {
+      setIsMobileMenuOpen(false);
+      setIsProfileDropdownOpen(false);
+      setIsAiDropdownOpen(false);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [location.pathname]);
 
   // Listen for auth state changes across the app

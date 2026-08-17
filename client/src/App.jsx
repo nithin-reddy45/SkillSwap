@@ -15,6 +15,8 @@ import Roadmap from "./pages/Roadmap.jsx";
 import SkillAssessment from "./pages/SkillAssessment.jsx";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer.jsx";
 import Leaderboard from "./pages/Leaderboard.jsx";
+import CodingTests from "./pages/CodingTests.jsx";
+import Courses from "./pages/Courses.jsx";
 
 import Dashboard from "./pages/Dashboard.jsx";
 import FindMatches from "./pages/FindMatches.jsx";
@@ -83,6 +85,9 @@ function App() {
         <Route path="/roadmap" element={<Roadmap />} />
         <Route path="/skill-assessment" element={<SkillAssessment />} />
         <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
+        <Route path="/coding-test" element={<CodingTests />} />
+        <Route path="/coding-test/:testId" element={<CodingTests />} />
+        <Route path="/courses" element={<Courses />} />
 
         {/* ========================= */}
         {/* PROTECTED USER ROUTES */}

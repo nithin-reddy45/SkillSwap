@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../socket";
 import { API_BASE_URL } from "../config/api";
+import { handleAuthError } from "../utils/auth";
 import "./Requests.css";
 
 function Requests() {
@@ -36,6 +37,8 @@ function Requests() {
             },
           }
         );
+
+        if (handleAuthError(response, navigate)) return;
 
         const data = await response.json();
 

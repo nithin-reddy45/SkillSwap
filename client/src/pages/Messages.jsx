@@ -1,37 +1,17 @@
 import { useEffect, useState } from "react";
-import {
-  useNavigate,
-  useLocation,
-} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
+import { handleAuthError } from "../utils/auth";
 import "./Messages.css";
 
 function Messages() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // ==========================================
-  // GET SELECTED USER FROM MY CONNECTIONS
-  // ==========================================
-  useEffect(() => {
-    const selectedUser = location.state?.selectedUser;
-
-    if (selectedUser?._id) {
-      navigate(`/chat/${selectedUser._id}`, {
-        replace: true,
-        state: {
-          selectedUser,
-        },
-      });
-    }
-  }, [location.state, navigate]);
-
-
-  // ==========================================
-  // FETCH MY CONNECTIONS
+  // FETCH CONNECTIONS FOR MESSAGES LIST
   // ==========================================
   useEffect(() => {
     const fetchConnections = async () => {
@@ -51,6 +31,8 @@ function Messages() {
             },
           }
         );
+
+        if (handleAuthError(response, navigate)) return;
 
         const data = await response.json();
 

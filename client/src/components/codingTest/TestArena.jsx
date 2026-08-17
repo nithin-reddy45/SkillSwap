@@ -63,13 +63,6 @@ function TestArena({ test, onExit }) {
     return () => clearInterval(timerRef.current);
   }, []);
 
-  // AUTO-SUBMIT ON TIME EXPIRY
-  useEffect(() => {
-    if (isTimeUp && !isSubmitted) {
-      handleFinalSubmit(true);
-    }
-  }, [isTimeUp, isSubmitted]);
-
   // Format Timer Display
   const formatTime = (secs) => {
     const mins = Math.floor(secs / 60);
@@ -185,6 +178,14 @@ function TestArena({ test, onExit }) {
     saveTestResult(resultPayload);
     setFinalResult(resultPayload);
   };
+
+  // AUTO-SUBMIT ON TIME EXPIRY
+  useEffect(() => {
+    if (isTimeUp && !isSubmitted) {
+      handleFinalSubmit(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTimeUp, isSubmitted]);
 
   const currentOutput = runOutputs[currentProblem.id];
   const isTimeCritical = secondsRemaining <= 180;

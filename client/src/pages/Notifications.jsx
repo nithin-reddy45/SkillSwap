@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
 import "./Notifications.css";
 
@@ -11,7 +11,7 @@ function Notifications() {
   const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -36,11 +36,11 @@ function Notifications() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [fetchNotifications]);
 
   const handleMarkAsRead = async (id, link) => {
     try {

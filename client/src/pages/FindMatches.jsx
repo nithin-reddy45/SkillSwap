@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
+import { handleAuthError } from "../utils/auth";
 import ScheduleSessionModal from "../components/ScheduleSessionModal";
 import "./FindMatches.css";
 
@@ -30,6 +31,8 @@ function FindMatches() {
             Authorization: `Bearer ${token}`,
           },
         });
+
+        if (handleAuthError(response, navigate)) return;
 
         const data = await response.json();
 

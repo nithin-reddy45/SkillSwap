@@ -16,7 +16,7 @@ function Roadmap() {
   const [skillInput, setSkillInput] = useState("Machine Learning");
   const [level, setLevel] = useState("Beginner");
   const [durationWeeks, setDurationWeeks] = useState(4);
-  const [goal, setGoal] = useState("");
+  const [goal] = useState("");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -126,8 +126,16 @@ function Roadmap() {
   };
 
   useEffect(() => {
-    handleGenerate("Machine Learning", "Beginner", 4);
-    fetchSavedRoadmaps();
+    let isMounted = true;
+    const init = async () => {
+      if (isMounted) {
+        handleGenerate("Machine Learning", "Beginner", 4);
+        fetchSavedRoadmaps();
+      }
+    };
+    init();
+    return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleTopic = (topicName) => {

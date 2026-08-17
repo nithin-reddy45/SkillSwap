@@ -1,4 +1,12 @@
 const mongoose = require("mongoose");
+const dns = require("dns");
+
+// Configure robust public DNS resolvers to handle MongoDB SRV lookups reliably
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+} catch (dnsErr) {
+  console.warn("Could not set custom DNS servers:", dnsErr.message);
+}
 
 const connectDB = async () => {
   try {
@@ -7,7 +15,7 @@ const connectDB = async () => {
     const conn = await mongoose.connect(
       process.env.MONGO_URI,
       {
-        serverSelectionTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 15000,
       }
     );
 
@@ -20,8 +28,6 @@ const connectDB = async () => {
       "MongoDB Connection Error:",
       error.message
     );
-
-    // Do not crash the server temporarily
   }
 };
 

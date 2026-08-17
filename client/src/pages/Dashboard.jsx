@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { socket } from "../socket";
 import { API_BASE_URL } from "../config/api";
+import { handleAuthError } from "../utils/auth";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -38,6 +38,9 @@ function Dashboard() {
         const profileRes = await fetch(`${API_BASE_URL}/api/users/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        if (handleAuthError(profileRes, navigate)) return;
+
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           setUser(profileData);
@@ -77,14 +80,7 @@ function Dashboard() {
     };
 
     fetchDashboardStats();
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.dispatchEvent(new Event("authChanged"));
-    navigate("/login");
-  };
+  }, [navigate]);
 
   if (!user) return null;
 

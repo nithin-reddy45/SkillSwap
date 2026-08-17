@@ -1,48 +1,8 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { COURSES_DATA } from "../data/coursesData";
-import CourseCard from "../components/CourseCard";
-import TutorialPlayerModal from "../components/TutorialPlayerModal";
-import SyllabusModal from "../components/SyllabusModal";
-import QuizModal from "../components/QuizModal";
 import "./Home.css";
 
 function Home() {
-  const [selectedHomeCategory, setSelectedHomeCategory] = useState("All");
-  const [playerCourse, setPlayerCourse] = useState(null);
-  const [syllabusCourse, setSyllabusCourse] = useState(null);
-  const [quizCourse, setQuizCourse] = useState(null);
-  const [savedCourses, setSavedCourses] = useState(() => {
-    try {
-      const saved = localStorage.getItem("savedCourses");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const handleToggleSave = (courseId) => {
-    setSavedCourses((prev) => {
-      const updated = prev.includes(courseId)
-        ? prev.filter((id) => id !== courseId)
-        : [...prev, courseId];
-      try {
-        localStorage.setItem("savedCourses", JSON.stringify(updated));
-      } catch (err) {
-        console.error(err);
-      }
-      return updated;
-    });
-  };
-
-  const featuredCourses = COURSES_DATA.filter((course) => {
-    if (selectedHomeCategory === "All") return true;
-    if (selectedHomeCategory === "Web Dev") return course.category === "Web Development";
-    if (selectedHomeCategory === "AI & ML") return course.category === "AI & Data Science";
-    if (selectedHomeCategory === "DSA") return course.category === "DSA & Coding Interview";
-    if (selectedHomeCategory === "Cloud & DevOps") return course.category.includes("Cloud") || course.category.includes("DevOps");
-    return true;
-  }).slice(0, 6);
+  const token = localStorage.getItem("token");
 
   return (
     <div className="home">
@@ -50,160 +10,185 @@ function Home() {
       {/* HERO */}
       <section className="hero">
         <div className="hero-content">
-          <p className="hero-tag">LEARN • TEACH • CONNECT</p>
+          <div className="hero-badge-pill">
+            <span>⚡ The #1 Peer-to-Peer Developer Skill Exchange</span>
+          </div>
 
           <h1>
-            Exchange Skills.
+            Teach What You Know.
             <br />
-            <span>Grow Together.</span>
+            <span className="gradient-text">Learn What You Don't.</span>
           </h1>
 
           <p className="hero-description">
-            SkillSwap AI connects people who want to learn with people
-            who have the skills to teach. Find your perfect learning
-            partner and grow together.
+            SkillSwap AI pairs developers in reciprocal 1-on-1 mentorship exchanges.
+            Trade your expertise, schedule live pair-programming video sessions, earn verified badges, and accelerate your career.
           </p>
 
           <div className="hero-buttons">
-            <Link to="/register" className="primary-btn">
-              Get Started
+            <Link to={token ? "/dashboard" : "/register"} className="primary-btn">
+              {token ? "Go to Dashboard →" : "Start Swapping Free 🚀"}
             </Link>
 
             <Link to="/matches" className="secondary-btn">
-              Find Matches
+              🔍 Find Matches
             </Link>
 
-            <Link to="/courses" className="tutorial-hero-btn">
-              🎓 Best Tutorials
+            <Link to="/skill-assessment" className="assessment-hero-btn">
+              🏆 Earn Verified Badges
             </Link>
+          </div>
 
-            <Link to="/coding-test" className="tutorial-hero-btn">
-              ⚡ Coding Arena
-            </Link>
+          <div className="hero-trust-metrics">
+            <div className="trust-item">
+              <strong>100% Free</strong>
+              <span>No Subscriptions</span>
+            </div>
+            <div className="trust-divider">•</div>
+            <div className="trust-item">
+              <strong>1-on-1 Video</strong>
+              <span>Live Pair Coding</span>
+            </div>
+            <div className="trust-divider">•</div>
+            <div className="trust-item">
+              <strong>AI Verified</strong>
+              <span>Proven Skills</span>
+            </div>
           </div>
         </div>
 
+        {/* INTERACTIVE HERO MATCH CARD */}
         <div className="hero-card">
           <div className="match-card">
-            <p className="match-label">AI MATCH</p>
-            <h3>Perfect Learning Partner</h3>
+            <div className="match-card-top">
+              <span className="match-label">⚡ 2-WAY RECIPROCAL MATCH</span>
+              <span className="compatibility-badge">96% Match</span>
+            </div>
 
-            <div className="skills">
+            <div className="match-partner-preview">
+              <div className="partner-avatar">👩‍💻</div>
               <div>
-                <span>You teach</span>
-                <strong>Java & DSA</strong>
-              </div>
-
-              <div>
-                <span>You learn</span>
-                <strong>React & Node.js</strong>
+                <h4>Alex Rivera</h4>
+                <p>Senior Frontend & React Specialist</p>
               </div>
             </div>
 
-            <div className="match-score">
-              <span>Compatibility</span>
-              <strong>92%</strong>
+            <div className="skills-exchange-box">
+              <div className="skill-direction-row">
+                <span className="direction-tag give">You Teach:</span>
+                <span className="skill-bubble">Python & FastAPI</span>
+              </div>
+
+              <div className="exchange-arrow">⇅ Mutual Swap</div>
+
+              <div className="skill-direction-row">
+                <span className="direction-tag receive">You Learn:</span>
+                <span className="skill-bubble">React & TypeScript</span>
+              </div>
+            </div>
+
+            <div className="match-card-action">
+              <Link to="/matches" className="quick-connect-demo-btn">
+                🤝 Connect & Schedule Swap
+              </Link>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* FEATURED COURSES & BEST TUTORIALS SECTION */}
-      <section className="featured-courses-section">
-        <div className="featured-header-content">
-          <p className="section-tag">TOP RATED LEARNING PATHS</p>
-          <h2>Best Courses & Industry Tutorials</h2>
-          <p className="section-subtitle">
-            Watch hands-on video tutorials, study roadmaps, test yourself with practice quizzes, and connect with peer study partners.
-          </p>
-
-          {/* Quick Category Filter Bar */}
-          <div className="home-category-tabs">
-            {["All", "Web Dev", "AI & ML", "DSA", "Cloud & DevOps"].map((cat) => (
-              <button
-                key={cat}
-                className={`home-tab-btn ${selectedHomeCategory === cat ? "active" : ""}`}
-                onClick={() => setSelectedHomeCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="home-courses-grid">
-          {featuredCourses.map((course) => (
-            <CourseCard
-              key={course.id}
-              course={course}
-              isSaved={savedCourses.includes(course.id)}
-              onToggleSave={handleToggleSave}
-              onWatchTutorial={(c) => setPlayerCourse(c)}
-              onViewSyllabus={(c) => setSyllabusCourse(c)}
-              onTakeQuiz={(c) => setQuizCourse(c)}
-            />
-          ))}
-        </div>
-
-        <div className="view-all-courses-wrap">
-          <Link to="/courses" className="view-all-courses-btn">
-            Explore All Courses & Best Tutorials (12+) →
-          </Link>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
       <section className="how-it-works">
-        <p className="section-tag">HOW IT WORKS</p>
+        <div className="section-header-center">
+          <p className="section-tag">HOW SKILLSWAP WORKS</p>
+          <h2>Peer-to-Peer Learning in 4 Simple Steps</h2>
+          <p className="section-subtitle">
+            No expensive bootcamps or one-sided courses. Just two developers helping each other level up.
+          </p>
+        </div>
 
-        <h2>Learn by exchanging knowledge</h2>
-
-        <div className="steps">
+        <div className="steps-grid">
           <div className="step-card">
             <div className="step-number">01</div>
-            <h3>Share Your Skills</h3>
+            <div className="step-icon">🎯</div>
+            <h3>List Teach & Learn Skills</h3>
             <p>
-              Add the skills you can teach and the skills you want to learn.
+              Specify the technologies you're confident teaching and the skills you're eager to learn.
             </p>
           </div>
 
-          <div className="step-card">
+          <div className="step-card highlight-step">
             <div className="step-number">02</div>
-            <h3>Find Your Match</h3>
+            <div className="step-icon">🤖</div>
+            <h3>AI Reciprocal Matching</h3>
             <p>
-              Our intelligent matching system finds compatible learning partners.
+              Our algorithm matches you with peers who teach what you want to learn, and want to learn what you teach.
             </p>
           </div>
 
           <div className="step-card">
             <div className="step-number">03</div>
-            <h3>Grow Together</h3>
+            <div className="step-icon">💻</div>
+            <h3>1-on-1 Video & Code Pad</h3>
             <p>
-              Connect, exchange knowledge, schedule sessions, and build skills.
+              Meet via live video, share code snippets in real time, and practice hands-on problem solving.
+            </p>
+          </div>
+
+          <div className="step-card">
+            <div className="step-number">04</div>
+            <div className="step-icon">🏆</div>
+            <h3>Earn Credits & Badges</h3>
+            <p>
+              Complete swap sessions to build time-bank credits and pass AI assessments to showcase verified badges.
             </p>
           </div>
         </div>
       </section>
 
-      {/* MODALS */}
-      <TutorialPlayerModal
-        course={playerCourse}
-        isOpen={!!playerCourse}
-        onClose={() => setPlayerCourse(null)}
-      />
+      {/* WHY PEER LEARNING WINS */}
+      <section className="why-skillswap-section">
+        <div className="section-header-center">
+          <p className="section-tag">THE ADVANTAGE</p>
+          <h2>Why Skill Swapping Beats Video Tutorials</h2>
+        </div>
 
-      <SyllabusModal
-        course={syllabusCourse}
-        isOpen={!!syllabusCourse}
-        onClose={() => setSyllabusCourse(null)}
-        onStartTutorial={(c) => setPlayerCourse(c)}
-      />
+        <div className="benefits-grid">
+          <div className="benefit-card">
+            <div className="benefit-icon">💡</div>
+            <h3>Direct Q&A in Real Time</h3>
+            <p>
+              Get answers to your exact edge cases and debugging roadblocks instead of watching someone else type.
+            </p>
+          </div>
 
-      <QuizModal
-        course={quizCourse}
-        isOpen={!!quizCourse}
-        onClose={() => setQuizCourse(null)}
-      />
+          <div className="benefit-card">
+            <div className="benefit-icon">🔥</div>
+            <h3>Accountability & Streak</h3>
+            <p>
+              Scheduled 1-on-1 peer sessions keep you motivated to code and learn consistently every week.
+            </p>
+          </div>
+
+          <div className="benefit-card">
+            <div className="benefit-icon">🪙</div>
+            <h3>Time-Bank Skill Credits</h3>
+            <p>
+              Teach 1 hour to earn credits, then spend those credits learning from seasoned experts across any domain.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* BOTTOM CALL TO ACTION */}
+      <section className="home-cta-section">
+        <div className="cta-content">
+          <h2>Ready to trade skills with top developers?</h2>
+          <p>Join developers worldwide exchanging skills, leveling up their code, and building together.</p>
+          <Link to={token ? "/matches" : "/register"} className="cta-large-btn">
+            {token ? "Explore Your Matches →" : "Get Started Now — It's 100% Free"}
+          </Link>
+        </div>
+      </section>
 
     </div>
   );

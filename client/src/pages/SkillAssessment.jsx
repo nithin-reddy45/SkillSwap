@@ -296,16 +296,17 @@ function SkillAssessment() {
             {/* VERIFIED BADGE PREVIEW */}
             {evaluationResult.badge && (
               <div className="verified-badge-card">
-                <div className="badge-visual">
+                <div className="badge-preview-box">
                   <span className="badge-icon">{evaluationResult.badge.icon}</span>
                   <div className="badge-details">
-                    <span className="badge-status">OFFICIAL VERIFICATION</span>
+                    <span className="badge-status">OFFICIAL VERIFICATION (+2 CREDITS)</span>
                     <h3>{evaluationResult.badge.title}</h3>
                     <p>Proficiency Level: <strong>{evaluationResult.badge.grade}</strong> ({evaluationResult.badge.score}% Score)</p>
+                    <span className="credits-reward-pill">🪙 +2 Skill Credits Awarded to Balance</span>
                   </div>
                 </div>
                 <div className="badge-actions">
-                  <button className="badge-claim-btn" onClick={() => alert("🎖️ Badge added to your SkillSwap profile!")}>
+                  <button className="badge-claim-btn" onClick={() => alert("🎖️ Badge & 2 Skill Credits added to your profile!")}>
                     ✨ Badge Claimed to Profile
                   </button>
                 </div>

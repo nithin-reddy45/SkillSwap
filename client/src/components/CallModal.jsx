@@ -30,6 +30,8 @@ function CallModal({
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(callType === "voice");
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isCodePadOpen, setIsCodePadOpen] = useState(false);
+  const [liveCodeText, setLiveCodeText] = useState("// Write & share code live during your session...\nfunction solveChallenge() {\n  return 'SkillSwap Pair Programming';\n}\n");
   const [callDuration, setCallDuration] = useState(0);
 
   const localVideoRef = useRef(null);
@@ -574,6 +576,15 @@ function CallModal({
                 </button>
               )}
 
+              {/* LIVE CODE NOTEPAD */}
+              <button
+                className={`control-btn ${isCodePadOpen ? "active-screen" : ""}`}
+                onClick={() => setIsCodePadOpen(!isCodePadOpen)}
+                title="Live Collaborative Code Notepad"
+              >
+                💻
+              </button>
+
               {/* END CALL */}
               <button
                 className="control-btn end-call"
@@ -583,6 +594,43 @@ function CallModal({
                 🔴
               </button>
             </div>
+
+            {/* LIVE CODE NOTEPAD SLIDE-OUT DRAWER */}
+            {isCodePadOpen && (
+              <div className="live-codepad-drawer">
+                <div className="codepad-header">
+                  <div className="codepad-title">
+                    <span>⚡ Live Session Code Pad</span>
+                  </div>
+                  <div className="codepad-actions">
+                    <button
+                      type="button"
+                      className="codepad-copy-btn"
+                      onClick={() => {
+                        navigator.clipboard.writeText(liveCodeText);
+                        alert("Code copied to clipboard!");
+                      }}
+                    >
+                      📋 Copy
+                    </button>
+                    <button
+                      type="button"
+                      className="codepad-close-btn"
+                      onClick={() => setIsCodePadOpen(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  className="codepad-textarea"
+                  value={liveCodeText}
+                  onChange={(e) => setLiveCodeText(e.target.value)}
+                  placeholder="Type or paste code to discuss live..."
+                  spellCheck="false"
+                />
+              </div>
+            )}
           </>
         )}
 

@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { sendOTPEmail } = require("../utils/emailService");
 
 // Email regex validator
 const isValidEmail = (email) => {
@@ -179,9 +180,14 @@ const googleAuth = async (req, res) => {
         ],
       });
     } else {
-      if (avatar && !user.avatar) user.avatar = avatar;
-      if (googleId && !user.googleId) user.googleId = googleId;
-      await user.save();
+      const updates = {};
+      if (avatar && !user.avatar) updates.avatar = avatar;
+      if (googleId && !user.googleId) updates.googleId = googleId;
+      if (Object.keys(updates).length > 0) {
+        await User.updateOne({ _id: user._id }, { $set: updates });
+        if (updates.avatar) user.avatar = updates.avatar;
+        if (updates.googleId) user.googleId = updates.googleId;
+      }
     }
 
     const token = jwt.sign(
@@ -231,21 +237,28 @@ const forgotPassword = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins validity
 
-    user.resetPasswordOTP = otp;
-    user.resetPasswordExpires = expires;
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          resetPasswordOTP: otp,
+          resetPasswordExpires: expires,
+        },
+      }
+    );
 
-    console.log(`[PASSWORD RESET OTP] For ${cleanEmail}: ${otp}`);
+    // Dispatch email to the user's registered inbox
+    await sendOTPEmail(user.email, user.name, otp);
 
     res.status(200).json({
       success: true,
-      message: `Password reset code sent to ${cleanEmail}. Enter the 6-digit code to continue.`,
+      message: `A 6-digit password reset code has been sent to ${cleanEmail}. Please check your inbox and spam folder.`,
       email: cleanEmail,
-      otp, // Provided for instant verification & testing in development
+      otp, // Provided for instant verification & preview in development
     });
   } catch (error) {
     console.error("Forgot Password Error:", error);
-    res.status(500).json({ message: "Failed to process password reset", error: error.message });
+    res.status(500).json({ message: "Failed to process password reset request", error: error.message });
   }
 };
 
@@ -308,10 +321,16 @@ const resetPassword = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    user.resetPasswordOTP = null;
-    user.resetPasswordExpires = null;
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          password: hashedPassword,
+          resetPasswordOTP: null,
+          resetPasswordExpires: null,
+        },
+      }
+    );
 
     res.status(200).json({
       success: true,

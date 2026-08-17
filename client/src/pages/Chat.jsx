@@ -63,6 +63,59 @@ function Chat() {
   const [forwardLoading, setForwardLoading] =
     useState(false);
 
+  // Code Snippet Sharing State
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [codeSnippetText, setCodeSnippetText] = useState("");
+  const [codeLang, setCodeLang] = useState("javascript");
+  const [copiedMsgId, setCopiedMsgId] = useState(null);
+
+  const handleSendCodeSnippet = async (e) => {
+    if (e) e.preventDefault();
+    if (!codeSnippetText.trim()) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/messages/${userId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: `Code snippet (${codeLang})`,
+          messageType: "code",
+          codeLanguage: codeLang,
+          codeSnippet: codeSnippetText.trim(),
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.message || "Failed to send code");
+        return;
+      }
+
+      if (data.data) {
+        setMessages((prev) => {
+          const exists = prev.some((m) => String(m._id) === String(data.data._id));
+          return exists ? prev : [...prev, data.data];
+        });
+      }
+
+      setCodeSnippetText("");
+      setShowCodeModal(false);
+    } catch (err) {
+      console.error("Send code error:", err);
+      alert("Failed to send code snippet");
+    }
+  };
+
+  const handleCopyCode = (messageId, code) => {
+    navigator.clipboard.writeText(code);
+    setCopiedMsgId(messageId);
+    setTimeout(() => setCopiedMsgId(null), 2000);
+  };
+
   // ================= CURRENT USER =================
 
   const getCurrentUserId = () => {
@@ -1254,17 +1307,34 @@ function Chat() {
                           </div>
                         )}
 
-                        {/* MESSAGE */}
-
-                        <div
-                          className={
-                            isSent
-                              ? "message sent"
-                              : "message received"
-                          }
-                        >
-                          {message.message}
-                        </div>
+                        {/* MESSAGE CONTENT */}
+                        {message.messageType === "code" || message.codeSnippet ? (
+                          <div className={`chat-code-block ${isSent ? "code-sent" : "code-received"}`}>
+                            <div className="code-block-header">
+                              <span className="code-lang-tag">⚡ {message.codeLanguage || "code"}</span>
+                              <button
+                                type="button"
+                                className="copy-code-btn"
+                                onClick={() => handleCopyCode(message._id, message.codeSnippet || message.message)}
+                              >
+                                {copiedMsgId === message._id ? "✓ Copied!" : "📋 Copy"}
+                              </button>
+                            </div>
+                            <pre className="code-content">
+                              <code>{message.codeSnippet || message.message}</code>
+                            </pre>
+                          </div>
+                        ) : (
+                          <div
+                            className={
+                              isSent
+                                ? "message sent"
+                                : "message received"
+                            }
+                          >
+                            {message.message}
+                          </div>
+                        )}
 
                         {/* TIME */}
 
@@ -1463,9 +1533,18 @@ function Chat() {
             handleSendMessage
           }
         >
+          <button
+            type="button"
+            className="code-snippet-trigger-btn"
+            title="Share Code Snippet"
+            onClick={() => setShowCodeModal(true)}
+          >
+            💻 Code
+          </button>
+
           <input
             type="text"
-            placeholder="Type your message..."
+            placeholder="Type your message or share a snippet..."
             value={newMessage}
             onChange={
               handleInputChange
@@ -1476,6 +1555,56 @@ function Chat() {
             Send
           </button>
         </form>
+
+        {/* CODE SNIPPET MODAL */}
+        {showCodeModal && (
+          <div className="code-modal-overlay">
+            <div className="code-modal-card">
+              <div className="code-modal-header">
+                <h3>💻 Share Code Snippet</h3>
+                <button type="button" onClick={() => setShowCodeModal(false)}>✕</button>
+              </div>
+
+              <div className="code-modal-controls">
+                <label>Language:</label>
+                <select value={codeLang} onChange={(e) => setCodeLang(e.target.value)}>
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="react">React / JSX</option>
+                  <option value="cpp">C++</option>
+                  <option value="java">Java</option>
+                  <option value="html">HTML</option>
+                  <option value="css">CSS</option>
+                  <option value="sql">SQL</option>
+                  <option value="markdown">Markdown</option>
+                </select>
+              </div>
+
+              <textarea
+                className="code-snippet-textarea"
+                placeholder="Paste or write your code snippet here..."
+                value={codeSnippetText}
+                onChange={(e) => setCodeSnippetText(e.target.value)}
+                rows={8}
+                autoFocus
+              />
+
+              <div className="code-modal-actions">
+                <button type="button" className="cancel-code-btn" onClick={() => setShowCodeModal(false)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="send-code-btn"
+                  disabled={!codeSnippetText.trim()}
+                  onClick={handleSendCodeSnippet}
+                >
+                  🚀 Share Snippet
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* FORWARD MODAL */}
 

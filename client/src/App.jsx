@@ -11,8 +11,6 @@ import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
-import Courses from "./pages/Courses.jsx";
-import CodingTests from "./pages/CodingTests.jsx";
 import Roadmap from "./pages/Roadmap.jsx";
 import SkillAssessment from "./pages/SkillAssessment.jsx";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer.jsx";
@@ -81,19 +79,10 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
 
-        {/* Courses & Tutorials Unified */}
-        <Route path="/courses" element={<Courses />} />
-        <Route path="/tutorials" element={<Courses />} />
-
         {/* AI Learning & Guidance */}
         <Route path="/roadmap" element={<Roadmap />} />
         <Route path="/skill-assessment" element={<SkillAssessment />} />
         <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
-
-        {/* Coding Arena */}
-        <Route path="/coding-test" element={<CodingTests />} />
-        <Route path="/coding-test/:testId" element={<CodingTests />} />
-        <Route path="/arena" element={<CodingTests />} />
 
         {/* ========================= */}
         {/* PROTECTED USER ROUTES */}

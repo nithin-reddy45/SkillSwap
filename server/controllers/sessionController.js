@@ -147,16 +147,31 @@ const updateSessionStatus = async (req, res) => {
         link: "/sessions",
       });
     } else if (status === "completed") {
-      // Increment completed sessions count for both
-      await User.findByIdAndUpdate(session.mentor._id, { $inc: { completedSessionsCount: 1 } });
-      await User.findByIdAndUpdate(session.learner._id, { $inc: { completedSessionsCount: 1 } });
+      const hours = Number(((session.durationMinutes || 45) / 60).toFixed(1));
+
+      // Mentor earns +1 Skill Credit, increments completedSessionsCount & hoursTaught
+      await User.findByIdAndUpdate(session.mentor._id, {
+        $inc: {
+          completedSessionsCount: 1,
+          skillCredits: 1,
+          hoursTaught: hours,
+        },
+      });
+
+      // Learner increments completedSessionsCount & hoursLearned
+      await User.findByIdAndUpdate(session.learner._id, {
+        $inc: {
+          completedSessionsCount: 1,
+          hoursLearned: hours,
+        },
+      });
 
       await Notification.create({
         recipient: partnerId,
         sender: currentUserId,
         type: "session_completed",
-        title: "🌟 Session Completed",
-        message: `Your session on "${session.skill}" has been marked complete. Please leave a rating!`,
+        title: "🌟 Session Completed (+1 Skill Credit)",
+        message: `Your session on "${session.skill}" has been marked complete. Mentor earned +1 Skill Credit. Please leave a rating!`,
         link: "/sessions",
       });
     }

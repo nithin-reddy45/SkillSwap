@@ -108,6 +108,53 @@ function Sessions() {
     }
   })();
 
+  const getGoogleCalendarUrl = (session) => {
+    const title = encodeURIComponent(`SkillSwap: ${session.topic || session.skill}`);
+    const details = encodeURIComponent(
+      `SkillSwap 1-on-1 Learning Session\nSkill: ${session.skill}\nTopic: ${session.topic}\nNotes: ${session.notes || "N/A"}\nJoin Video Call: ${session.meetingLink || "https://skillswap.ai/sessions"}`
+    );
+    const startDate = new Date(session.scheduledAt);
+    const durationMin = session.durationMinutes || 45;
+    const endDate = new Date(startDate.getTime() + durationMin * 60 * 1000);
+
+    const formatGDate = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+    const dates = `${formatGDate(startDate)}/${formatGDate(endDate)}`;
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${encodeURIComponent(session.meetingLink || "SkillSwap Video Room")}`;
+  };
+
+  const downloadIcsFile = (session) => {
+    const startDate = new Date(session.scheduledAt);
+    const durationMin = session.durationMinutes || 45;
+    const endDate = new Date(startDate.getTime() + durationMin * 60 * 1000);
+    const formatGDate = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+
+    const icsContent = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//SkillSwap AI//Peer Learning Session//EN",
+      "BEGIN:VEVENT",
+      `UID:${session._id}@skillswap.ai`,
+      `DTSTAMP:${formatGDate(new Date())}`,
+      `DTSTART:${formatGDate(startDate)}`,
+      `DTEND:${formatGDate(endDate)}`,
+      `SUMMARY:SkillSwap Session - ${session.topic || session.skill}`,
+      `DESCRIPTION:Skill: ${session.skill}\\nTopic: ${session.topic}\\nMeeting Link: ${session.meetingLink || "https://skillswap.ai/sessions"}`,
+      `LOCATION:${session.meetingLink || "SkillSwap Live Video"}`,
+      "STATUS:CONFIRMED",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute("download", `skillswap-session-${session._id.slice(-6)}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const activeList = sessionsData[activeTab] || [];
 
   return (
@@ -258,16 +305,38 @@ function Sessions() {
                     {/* ACTION BUTTONS */}
                     <div className="session-card-actions">
                       
-                      {/* JOIN MEETING BUTTON */}
+                      {/* JOIN MEETING & CALENDAR SYNC */}
                       {session.status === "accepted" && (
-                        <a
-                          href={session.meetingLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="join-meeting-btn"
-                        >
-                          🎥 Start / Join Video Meeting
-                        </a>
+                        <div className="accepted-primary-actions">
+                          <a
+                            href={session.meetingLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="join-meeting-btn"
+                          >
+                            🎥 Start / Join Video Meeting
+                          </a>
+
+                          <div className="calendar-sync-row">
+                            <a
+                              href={getGoogleCalendarUrl(session)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="gcal-btn"
+                              title="Add session to Google Calendar"
+                            >
+                              📅 Google Calendar
+                            </a>
+                            <button
+                              type="button"
+                              className="ics-btn"
+                              onClick={() => downloadIcsFile(session)}
+                              title="Download iCal / Outlook .ics file"
+                            >
+                              📥 .ics Export
+                            </button>
+                          </div>
+                        </div>
                       )}
 
                       {/* ACCEPT / DECLINE FOR PENDING */}

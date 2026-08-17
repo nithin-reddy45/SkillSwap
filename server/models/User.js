@@ -136,14 +136,35 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Rich skill structures (with backward compatibility)
+    skillCredits: {
+      type: Number,
+      default: 5,
+      min: 0,
+    },
+
+    learningStreak: {
+      type: Number,
+      default: 1,
+    },
+
+    hoursLearned: {
+      type: Number,
+      default: 0,
+    },
+
+    hoursTaught: {
+      type: Number,
+      default: 0,
+    },
+
+    // Rich skill structures (with backward compatibility for strings & objects)
     teachSkills: {
-      type: [teachSkillSchema],
+      type: [mongoose.Schema.Types.Mixed],
       default: [],
     },
 
     learnSkills: {
-      type: [learnSkillSchema],
+      type: [mongoose.Schema.Types.Mixed],
       default: [],
     },
   },
@@ -151,6 +172,26 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Auto-normalize skills before validation for backward compatibility with legacy string arrays
+userSchema.pre("validate", function () {
+  if (Array.isArray(this.teachSkills)) {
+    this.teachSkills = this.teachSkills.map((item) => {
+      if (typeof item === "string") {
+        return { skill: item, level: "Intermediate", experience: "1 year", isVerified: false };
+      }
+      return item;
+    });
+  }
+  if (Array.isArray(this.learnSkills)) {
+    this.learnSkills = this.learnSkills.map((item) => {
+      if (typeof item === "string") {
+        return { skill: item, currentLevel: "Beginner", targetLevel: "Advanced" };
+      }
+      return item;
+    });
+  }
+});
 
 // Helper method: Normalize skills input to support both simple strings and rich objects
 userSchema.methods.normalizeSkills = function () {

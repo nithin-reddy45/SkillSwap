@@ -362,6 +362,96 @@
   transform: scale(1.1);
 }
 
+/* ================= LIVE CODEPAD DRAWER ================= */
+.live-codepad-drawer {
+  position: absolute;
+  top: 70px;
+  right: 16px;
+  bottom: 84px;
+  width: 380px;
+  max-width: calc(100% - 32px);
+  background: rgba(13, 17, 23, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  z-index: 50;
+  animation: slideInDrawer 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInDrawer {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.codepad-header {
+  padding: 10px 14px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.codepad-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #818cf8;
+}
+
+.codepad-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.codepad-copy-btn {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #f0f6fc;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.codepad-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.codepad-close-btn {
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.codepad-close-btn:hover {
+  color: #f0f6fc;
+}
+
+.codepad-textarea {
+  flex: 1;
+  width: 100%;
+  padding: 14px;
+  background: #0d1117;
+  border: none;
+  color: #7ee787;
+  font-family: "Fira Code", "Courier New", Courier, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+}
+
 /* ================= RESPONSIVE ================= */
 
 @media (max-width: 650px) {

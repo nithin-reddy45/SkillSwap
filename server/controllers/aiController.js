@@ -588,6 +588,9 @@ const evaluateQuiz = async (req, res) => {
     const passed = percentage >= 70;
 
     let badge = null;
+    let awardedBadge = false;
+    let awardedCredits = 0;
+
     if (passed) {
       badge = {
         title: `Verified ${skill} Specialist`,
@@ -596,6 +599,24 @@ const evaluateQuiz = async (req, res) => {
         score: percentage,
         issuedAt: new Date().toISOString()
       };
+
+      const userId = req.user?.id || req.body?.userId;
+      if (userId && skill) {
+        try {
+          const formattedSkill = skill.trim();
+          await User.updateOne(
+            { _id: userId },
+            {
+              $addToSet: { verifiedSkills: formattedSkill },
+              $inc: { skillCredits: 2 }
+            }
+          );
+          awardedBadge = true;
+          awardedCredits = 2;
+        } catch (dbErr) {
+          console.error("Error saving verified skill:", dbErr);
+        }
+      }
     }
 
     res.status(200).json({
@@ -605,6 +626,8 @@ const evaluateQuiz = async (req, res) => {
       totalQuestions: total,
       passed,
       badge,
+      awardedBadge,
+      awardedCredits,
       feedback: feedbackList
     });
 
@@ -709,43 +732,152 @@ const analyzeResumeGap = async (req, res) => {
 };
 
 // ==========================================
-// 5. AI COPILOT / CHATBOT ASSISTANT
+// 5. REAL-WORLD AI COPILOT / CHATBOT ASSISTANT
 // ==========================================
 const aiAssistantChat = async (req, res) => {
   try {
-    const { message = "" } = req.body;
-    const lower = message.toLowerCase().trim();
+    const { message = "", history = [] } = req.body;
+    const currentUserId = req.user?.id;
+    const userText = message.trim();
+    const lower = userText.toLowerCase();
 
-    if (!lower) {
+    if (!userText) {
       return res.status(400).json({ message: "Message is required" });
     }
 
+    // 1. Check if user configured GEMINI_API_KEY for live LLM generation
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey) {
+      try {
+        const systemInstruction = `You are the AI Learning Copilot for SkillSwap AI (a peer-to-peer developer skill exchange platform). 
+        You help developers find learning partners, debug code, explain technical concepts (React, Python, JS, DSA, AI/ML, backend, databases), plan study roadmaps, and navigate SkillSwap features (Matches, Sessions, Skill Verification Badges, Skill Credits).
+        Provide clear, concise, friendly responses with Markdown formatting and code examples where helpful.`;
+
+        const contents = [
+          ...history.slice(-6).map((h) => ({
+            role: h.sender === "user" ? "user" : "model",
+            parts: [{ text: h.text }],
+          })),
+          { role: "user", parts: [{ text: `${systemInstruction}\n\nUser Question: ${userText}` }] },
+        ];
+
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents }),
+          }
+        );
+
+        if (geminiRes.ok) {
+          const geminiData = await geminiRes.json();
+          const aiReply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (aiReply) {
+            return res.status(200).json({
+              success: true,
+              reply: aiReply,
+              source: "gemini",
+            });
+          }
+        }
+      } catch (gemErr) {
+        console.error("Gemini API call failed, using SkillSwap Context Engine:", gemErr.message);
+      }
+    }
+
+    // 2. Intelligent Contextual Engine (MongoDB queries + Technical Engine + Platform Actions)
     let reply = "";
     let action = null;
+    let mentors = [];
 
-    if (lower.includes("roadmap") || lower.includes("learn path") || lower.includes("how to learn")) {
-      reply = "I can generate a customized week-by-week learning roadmap for any skill or career goal! Visit our AI Roadmap generator to customize your timeline, track milestones, and check off topics.";
-      action = { label: "Generate AI Roadmap 🗺️", link: "/roadmap" };
-    } else if (lower.includes("resume") || lower.includes("gap") || lower.includes("job") || lower.includes("career")) {
-      reply = "Our AI Resume Skill Gap Analyzer scans your current experience, detects missing industry requirements for your target role, and instantly matches you with mentors on SkillSwap who teach those skills!";
-      action = { label: "Analyze Resume Gap 📄", link: "/resume-analyzer" };
-    } else if (lower.includes("quiz") || lower.includes("test") || lower.includes("assessment") || lower.includes("badge") || lower.includes("verify")) {
-      reply = "You can take AI Skill Assessments across JavaScript, Python, React, Machine Learning, and more to test your knowledge, pinpoint weak spots, and earn verified skill badges for your profile!";
-      action = { label: "Take Skill Quiz 🧠", link: "/skill-assessment" };
-    } else if (lower.includes("session") || lower.includes("schedule") || lower.includes("meeting")) {
-      reply = "You can schedule 1-on-1 peer learning sessions directly with your connections or matched partners, join video calls, and leave verified reviews.";
-      action = { label: "View Sessions 📅", link: "/sessions" };
-    } else if (lower.includes("match") || lower.includes("partner") || lower.includes("swap") || lower.includes("find")) {
-      reply = "SkillSwap uses 6-factor AI compatibility matching to pair you with users where you teach what they want to learn, and they teach what you want to learn. Check out Find Matches to explore reciprocal swaps!";
-      action = { label: "Find Skill Matches 🔍", link: "/matches" };
+    // Check for dynamic Mentor / Partner Search intent
+    const commonSkills = [
+      "javascript", "react", "python", "node.js", "nodejs", "java", "c++", "cpp",
+      "machine learning", "ai", "sql", "mongodb", "docker", "aws", "typescript",
+      "dsa", "data structures", "html", "css", "tailwind", "figma", "git", "flutter"
+    ];
+
+    const requestedSkill = commonSkills.find((s) => lower.includes(s));
+
+    if (
+      (lower.includes("who can teach") ||
+        lower.includes("find mentor") ||
+        lower.includes("find partner") ||
+        lower.includes("who knows") ||
+        lower.includes("learn from") ||
+        lower.includes("teacher")) &&
+      requestedSkill
+    ) {
+      const skillRegex = new RegExp(requestedSkill, "i");
+      const matchedUsers = await User.find({
+        ...(currentUserId ? { _id: { $ne: currentUserId } } : {}),
+        $or: [
+          { teachSkills: { $elemMatch: { skill: skillRegex } } },
+          { teachSkills: skillRegex },
+        ],
+      })
+        .select("name email teachSkills learnSkills avgRating completedSessionsCount verifiedSkills")
+        .limit(3);
+
+      if (matchedUsers.length > 0) {
+        reply = `I found **${matchedUsers.length} active mentors** on SkillSwap ready to teach **${requestedSkill.toUpperCase()}**!\n\nHere are top recommendations:\n` +
+          matchedUsers
+            .map(
+              (u) =>
+                `• **${u.name}** (⭐ ${u.avgRating?.toFixed(1) || "5.0"} rating, ${u.completedSessionsCount || 0} sessions completed)`
+            )
+            .join("\n") +
+          `\n\nClick below to connect and schedule your 1-on-1 swap!`;
+
+        mentors = matchedUsers.map((u) => ({
+          id: u._id,
+          name: u.name,
+          rating: u.avgRating || 5.0,
+          teachSkills: u.teachSkills,
+        }));
+
+        action = { label: `View ${requestedSkill.toUpperCase()} Matches 🔍`, link: "/matches" };
+      } else {
+        reply = `I searched our network for **${requestedSkill.toUpperCase()}** mentors. While no active users are currently listed for that exact skill, you can browse all compatible swappers in Find Matches!`;
+        action = { label: "Explore All Matches 🔍", link: "/matches" };
+      }
+    } else if (lower.includes("roadmap") || lower.includes("curriculum") || lower.includes("study plan")) {
+      const target = requestedSkill ? requestedSkill.toUpperCase() : "your target skill";
+      reply = `I can build an interactive, week-by-week **AI Learning Roadmap** for **${target}** with curated resources, practical milestones, and progress checklists!`;
+      action = { label: "Open AI Roadmap Builder 🗺️", link: "/roadmap" };
+    } else if (lower.includes("badge") || lower.includes("verify") || lower.includes("quiz") || lower.includes("test")) {
+      reply = `You can earn official **Verified Badges** (like *✓ React Verified*) by taking our adaptive AI Skill Assessments! Scoring $\\ge 70\\%$ automatically awards the badge to your profile and grants **+2 Bonus Skill Credits** 🪙.`;
+      action = { label: "Take AI Skill Assessment 🧠", link: "/skill-assessment" };
+    } else if (lower.includes("credit") || lower.includes("time bank") || lower.includes("coin") || lower.includes("how to earn")) {
+      reply = `### 🪙 Skill Credits & Time-Bank System\n\n• **What are credits?** Credits allow you to request 1-on-1 learning sessions with expert mentors.\n• **How to earn credits:**\n  1. **Teach a Session**: Marking a mentorship session complete awards **+1 Skill Credit**.\n  2. **Pass an Assessment**: Scoring $\\ge 70\\%$ on any AI skill test awards **+2 Skill Credits**.\n• You start with **5 free credits** upon registration!`;
+      action = { label: "View Credits on Dashboard 📊", link: "/dashboard" };
+    } else if (lower.includes("session") || lower.includes("video") || lower.includes("call") || lower.includes("calendar")) {
+      reply = `### 📅 1-on-1 Live Sessions\n\nWhen you connect with a partner, you can:\n1. Schedule a session with proposed dates and topics.\n2. Sync to **Google Calendar** or download standard **.ics** files.\n3. Join the built-in **WebRTC Video Call Room** with real-time screen sharing and collaborative live code notepad!`;
+      action = { label: "Manage Sessions 📅", link: "/sessions" };
+    } else if (lower.includes("resume") || lower.includes("gap") || lower.includes("career")) {
+      reply = `Our **AI Resume Skill Gap Analyzer** compares your current resume against real industry requirements for roles like *Full Stack Developer, Data Scientist, or AI Engineer*, identifies missing technologies, and matches you with mentors who teach them.`;
+      action = { label: "Analyze Resume Gaps 📄", link: "/resume-analyzer" };
+    } else if (lower.includes("react") && (lower.includes("hook") || lower.includes("useeffect") || lower.includes("state"))) {
+      reply = `### ⚛️ React State & Hooks Guide\n\n**Key Hooks Overview:**\n• \`useState\`: Manages local component state.\n• \`useEffect\`: Handles side effects (data fetching, subscriptions, DOM manipulation).\n\n\`\`\`jsx\nimport { useState, useEffect } from "react";\n\nfunction Counter() {\n  const [count, setCount] = useState(0);\n\n  useEffect(() => {\n    console.log("Count updated to:", count);\n  }, [count]); // Runs whenever count changes\n\n  return <button onClick={() => setCount(c => c + 1)}>Count: {count}</button>;\n}\n\`\`\`\n\nNeed to test your React knowledge? Take our AI Skill Assessment!`;
+      action = { label: "Take React Assessment 🧠", link: "/skill-assessment" };
+    } else if (lower.includes("python") && (lower.includes("decorator") || lower.includes("list comprehension") || lower.includes("lambda"))) {
+      reply = `### 🐍 Python Quick Guide\n\n**List Comprehension Example:**\n\`\`\`python\n# Clean, idiomatic list transformation\nnumbers = [1, 2, 3, 4, 5]\nsquares = [n**2 for n in numbers if n % 2 != 0] # [1, 9, 25]\n\`\`\`\n\n**Decorator Example:**\n\`\`\`python\ndef timing_decorator(func):\n    def wrapper(*args, **kwargs):\n        print("Starting execution...")\n        result = func(*args, **kwargs)\n        print("Execution finished!")\n        return result\n    return wrapper\n\`\`\``;
+      action = { label: "Take Python Assessment 🧠", link: "/skill-assessment" };
+    } else if (lower.includes("javascript") || lower.includes("closure") || lower.includes("promise") || lower.includes("async")) {
+      reply = `### ⚡ JavaScript Async / Await & Closures\n\n**Async / Await Pattern:**\n\`\`\`javascript\nasync function fetchUserData(userId) {\n  try {\n    const response = await fetch(\`/api/users/\${userId}\`);\n    if (!response.ok) throw new Error("User not found");\n    const data = await response.json();\n    return data;\n  } catch (error) {\n    console.error("Fetch Error:", error.message);\n  }\n}\n\`\`\`\n\n**Closure Definition:** A function bundled with references to its surrounding lexical scope even after the outer function finishes executing.`;
+      action = { label: "Verify JavaScript Skill 🏆", link: "/skill-assessment" };
     } else {
-      reply = `Hello! I'm your **SkillSwap AI Copilot**. I can help you find optimal learning partners, generate structured career roadmaps, test your technical skills with AI quizzes, or analyze your resume skill gaps. What would you like to explore today?`;
+      reply = `👋 Hi! I'm your **SkillSwap AI Copilot**. I can help you with:\n\n1. 🔍 **Find Mentors & Peers**: Ask *"Who can teach me React?"* or *"Find Python mentors"*\n2. 🗺️ **Roadmaps & Study Plans**: Ask *"Create a 4-week Machine Learning roadmap"*\n3. 🧠 **Skill Badges & Verification**: Ask *"How do I earn verified badges?"*\n4. 🪙 **Skill Credits & Time-Bank**: Ask *"How do credits work?"*\n5. 💻 **Technical Explanations & Code Examples**: Ask about JavaScript, Python, React, algorithms, or databases!\n\nWhat would you like to work on today?`;
+      action = { label: "Find Compatible Swappers 🔍", link: "/matches" };
     }
 
     return res.status(200).json({
       success: true,
       reply,
       action,
+      mentors,
+      source: "context-engine",
     });
   } catch (error) {
     console.error("AI Assistant Error:", error);

@@ -269,19 +269,30 @@ function Navbar() {
               className={`nav-item ai-drop-btn ${
                 location.pathname === "/roadmap" ||
                 location.pathname === "/skill-assessment" ||
-                location.pathname === "/coding-test"
+                location.pathname === "/resume-analyzer"
                   ? "active"
                   : ""
               }`}
               onClick={() => setIsAiDropdownOpen(!isAiDropdownOpen)}
             >
-              <span className="nav-icon">🗺️</span>
-              <span>AI Learning</span>
+              <span className="nav-icon">🧠</span>
+              <span>AI Tools</span>
               <span className="nav-drop-arrow">▾</span>
             </button>
 
             {isAiDropdownOpen && (
               <div className="ai-nav-menu-card">
+                <Link
+                  to="/skill-assessment"
+                  className="ai-menu-link"
+                  onClick={() => setIsAiDropdownOpen(false)}
+                >
+                  <span className="menu-icon">🧠</span>
+                  <div>
+                    <strong>AI Skill Verification</strong>
+                    <p>Take skill tests & earn verified badges</p>
+                  </div>
+                </Link>
                 <Link
                   to="/roadmap"
                   className="ai-menu-link"
@@ -290,42 +301,23 @@ function Navbar() {
                   <span className="menu-icon">🗺️</span>
                   <div>
                     <strong>AI Learning Roadmap</strong>
-                    <p>Structured milestones & weekly checklists</p>
+                    <p>Customized week-by-week learning goals</p>
                   </div>
                 </Link>
                 <Link
-                  to="/skill-assessment"
+                  to="/resume-analyzer"
                   className="ai-menu-link"
                   onClick={() => setIsAiDropdownOpen(false)}
                 >
-                  <span className="menu-icon">🧠</span>
+                  <span className="menu-icon">📄</span>
                   <div>
-                    <strong>AI Skill Assessment</strong>
-                    <p>Adaptive quizzes & verified badges</p>
-                  </div>
-                </Link>
-                <Link
-                  to="/coding-test"
-                  className="ai-menu-link"
-                  onClick={() => setIsAiDropdownOpen(false)}
-                >
-                  <span className="menu-icon">⚡</span>
-                  <div>
-                    <strong>Coding Arena & Sandbox</strong>
-                    <p>Hands-on compiler & verified tests</p>
+                    <strong>Resume Gap Matcher</strong>
+                    <p>Detect missing skills & find mentors</p>
                   </div>
                 </Link>
               </div>
             )}
           </div>
-
-          <NavLink
-            to="/resume-analyzer"
-            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-          >
-            <span className="nav-icon">📄</span>
-            <span>Career Assistant</span>
-          </NavLink>
 
           <NavLink
             to="/leaderboard"
@@ -348,6 +340,21 @@ function Navbar() {
           >
             <span className="theme-icon">{theme === "dark" ? "☀️" : "🌙"}</span>
           </button>
+
+          {token && (
+            /* SKILL CREDITS PILL */
+            <Link
+              to="/dashboard"
+              className="navbar-credits-badge"
+              title="Your Skill Credits balance (Earn +1 credit by teaching, +2 by passing skill assessments)"
+            >
+              <span className="credits-coin-icon">🪙</span>
+              <span className="credits-count-text">
+                {currentUser?.skillCredits !== undefined ? currentUser.skillCredits : 5}
+              </span>
+              <span className="credits-label">Credits</span>
+            </Link>
+          )}
 
           {token && (
             /* NOTIFICATIONS BELL */

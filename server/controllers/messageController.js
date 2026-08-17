@@ -7,7 +7,7 @@ const sendMessage = async (req, res) => {
   try {
     const senderId = req.user.id;
     const receiverId = req.params.receiverId;
-    const { message, replyTo } = req.body;
+    const { message, replyTo, messageType = "text", codeLanguage = "", codeSnippet = "" } = req.body;
 
     if (!message || message.trim() === "") {
       return res.status(400).json({
@@ -66,6 +66,9 @@ const sendMessage = async (req, res) => {
       sender: senderId,
       receiver: receiverId,
       message: message.trim(),
+      messageType,
+      codeLanguage,
+      codeSnippet,
       replyTo: replyTo || null,
       isRead: false,
     });

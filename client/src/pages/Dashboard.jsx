@@ -1,12 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { socket } from "../socket";
 import { API_BASE_URL } from "../config/api";
-import { COURSES_DATA } from "../data/coursesData";
-import CourseCard from "../components/CourseCard";
-import TutorialPlayerModal from "../components/TutorialPlayerModal";
-import SyllabusModal from "../components/SyllabusModal";
-import QuizModal from "../components/QuizModal";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -32,58 +27,22 @@ function Dashboard() {
   const [requestCount, setRequestCount] = useState(0);
   const [sessionsCount, setSessionsCount] = useState(0);
 
-  // Modals & Bookmarks state
-  const [playerCourse, setPlayerCourse] = useState(null);
-  const [syllabusCourse, setSyllabusCourse] = useState(null);
-  const [quizCourse, setQuizCourse] = useState(null);
-  const [savedCourses, setSavedCourses] = useState(() => {
-    try {
-      const saved = localStorage.getItem("savedCourses");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const handleToggleSave = (courseId) => {
-    setSavedCourses((prev) => {
-      const updated = prev.includes(courseId)
-        ? prev.filter((id) => id !== courseId)
-        : [...prev, courseId];
-      try {
-        localStorage.setItem("savedCourses", JSON.stringify(updated));
-      } catch (err) {
-        console.error(err);
-      }
-      return updated;
-    });
-  };
-
-  // Compute recommended tutorials tailored to user's learnSkills
-  const recommendedCourses = useMemo(() => {
-    if (!user?.learnSkills || user.learnSkills.length === 0) {
-      return COURSES_DATA.slice(0, 3);
-    }
-    const skillList = user.learnSkills.map((s) => (typeof s === "string" ? s : s.skill).toLowerCase());
-    const matched = COURSES_DATA.filter((course) => {
-      return (
-        skillList.some((s) => course.primarySkill.toLowerCase().includes(s)) ||
-        skillList.some((s) => course.title.toLowerCase().includes(s)) ||
-        course.relatedSkills.some((rs) =>
-          skillList.some((s) => rs.toLowerCase().includes(s))
-        )
-      );
-    });
-
-    return matched.length === 0 ? COURSES_DATA.slice(0, 3) : matched.slice(0, 3);
-  }, [user]);
-
   // Fetch Stats (Connections, Requests, Sessions)
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
+
+        // User Profile (for live credits, streak, hours)
+        const profileRes = await fetch(`${API_BASE_URL}/api/users/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setUser(profileData);
+          localStorage.setItem("user", JSON.stringify(profileData));
+        }
 
         // Connections
         const connRes = await fetch(`${API_BASE_URL}/api/connections/my-connections`, {
@@ -159,8 +118,24 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* Statistics */}
+      {/* Primary Metrics Grid */}
       <section className="stats-grid">
+        <div className="stat-card highlight-card" onClick={() => navigate("/dashboard")} style={{ cursor: "pointer" }}>
+          <div className="stat-icon pulse-icon">🪙</div>
+          <div>
+            <h3>{user.skillCredits !== undefined ? user.skillCredits : 5}</h3>
+            <p>Skill Credits Balance</p>
+          </div>
+        </div>
+
+        <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/skill-assessment")}>
+          <div className="stat-icon">🔥</div>
+          <div>
+            <h3>{user.learningStreak || 7} Days</h3>
+            <p>Learning Streak</p>
+          </div>
+        </div>
+
         <div className="stat-card" onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
           <div className="stat-icon">🎓</div>
           <div>
@@ -190,6 +165,14 @@ function Dashboard() {
           <div>
             <h3>{sessionsCount}</h3>
             <p>Upcoming Sessions</p>
+          </div>
+        </div>
+
+        <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/skill-assessment")}>
+          <div className="stat-icon">🏆</div>
+          <div>
+            <h3>{user.verifiedSkills?.length || 0}</h3>
+            <p>Verified Badges</p>
           </div>
         </div>
 
@@ -293,60 +276,6 @@ function Dashboard() {
           </div>
         </div>
       </section>
-
-      {/* RECOMMENDED COURSES */}
-      <section className="dashboard-tutorials-section">
-        <div className="dashboard-tutorials-header">
-          <div>
-            <p className="card-tag">RECOMMENDED FOR YOUR GOALS</p>
-            <h2>Top Courses & Best Video Tutorials</h2>
-            <p className="tutorials-subtitle">
-              Curated video tutorials aligned with your target learning skills.
-            </p>
-          </div>
-
-          <button
-            className="view-all-link-btn"
-            onClick={() => navigate("/courses")}
-          >
-            Explore All Tutorials →
-          </button>
-        </div>
-
-        <div className="dashboard-courses-grid">
-          {recommendedCourses.map((course) => (
-            <CourseCard
-              key={course.id}
-              course={course}
-              isSaved={savedCourses.includes(course.id)}
-              onToggleSave={handleToggleSave}
-              onWatchTutorial={(c) => setPlayerCourse(c)}
-              onViewSyllabus={(c) => setSyllabusCourse(c)}
-              onTakeQuiz={(c) => setQuizCourse(c)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* MODALS */}
-      <TutorialPlayerModal
-        course={playerCourse}
-        isOpen={!!playerCourse}
-        onClose={() => setPlayerCourse(null)}
-      />
-
-      <SyllabusModal
-        course={syllabusCourse}
-        isOpen={!!syllabusCourse}
-        onClose={() => setSyllabusCourse(null)}
-        onStartTutorial={(c) => setPlayerCourse(c)}
-      />
-
-      <QuizModal
-        course={quizCourse}
-        isOpen={!!quizCourse}
-        onClose={() => setQuizCourse(null)}
-      />
     </div>
   );
 }

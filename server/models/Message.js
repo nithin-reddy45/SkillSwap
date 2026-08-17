@@ -20,6 +20,22 @@ const messageSchema = new mongoose.Schema(
       trim: true,
     },
 
+    messageType: {
+      type: String,
+      enum: ["text", "code", "file"],
+      default: "text",
+    },
+
+    codeLanguage: {
+      type: String,
+      default: "",
+    },
+
+    codeSnippet: {
+      type: String,
+      default: "",
+    },
+
     // Reply to another message
     replyTo: {
       type: mongoose.Schema.Types.ObjectId,

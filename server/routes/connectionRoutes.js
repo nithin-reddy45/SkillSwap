@@ -6,42 +6,29 @@ const protect = require("../middleware/authMiddleware");
 const {
   sendConnectionRequest,
   getIncomingRequests,
+  getSentRequests,
   updateConnectionRequest,
   getMyConnections,
+  getCompletedSwaps,
 } = require("../controllers/connectionController");
 
-// Get incoming pending requests
-router.get(
-  "/requests",
-  protect,
-  getIncomingRequests
-);
+// Incoming requests
+router.get("/requests", protect, getIncomingRequests);
 
-// Get accepted connections
-router.get(
-  "/my-connections",
-  protect,
-  getMyConnections
-);
+// Sent requests
+router.get("/sent", protect, getSentRequests);
 
-// Send connection request
-router.post(
-  "/:receiverId",
-  protect,
-  sendConnectionRequest
-);
+// Active connections / swaps
+router.get("/my-connections", protect, getMyConnections);
 
-// Accept or reject connection request
-router.put(
-  "/:connectionId/respond",
-  protect,
-  updateConnectionRequest
-);
+// Completed swaps
+router.get("/completed", protect, getCompletedSwaps);
 
-router.put(
-  "/:connectionId",
-  protect,
-  updateConnectionRequest
-);
+// Send structured swap request
+router.post("/:receiverId", protect, sendConnectionRequest);
+
+// Update / respond to connection request (accept, reject, cancel, complete)
+router.put("/:connectionId/respond", protect, updateConnectionRequest);
+router.put("/:connectionId", protect, updateConnectionRequest);
 
 module.exports = router;

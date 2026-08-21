@@ -157,6 +157,42 @@ const userSchema = new mongoose.Schema(
       default: 0,
     },
 
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+
+    location: {
+      type: String,
+      default: "",
+    },
+
+    profession: {
+      type: String,
+      default: "",
+    },
+
+    interests: {
+      type: [String],
+      default: [],
+    },
+
+    xp: {
+      type: Number,
+      default: 150,
+    },
+
+    badges: {
+      type: [String],
+      default: ["🏆 First Skill Swap"],
+    },
+
+    onboarded: {
+      type: Boolean,
+      default: false,
+    },
+
     // Rich skill structures (with backward compatibility for strings & objects)
     teachSkills: {
       type: [mongoose.Schema.Types.Mixed],
@@ -178,17 +214,49 @@ userSchema.pre("validate", function () {
   if (Array.isArray(this.teachSkills)) {
     this.teachSkills = this.teachSkills.map((item) => {
       if (typeof item === "string") {
-        return { skill: item, level: "Intermediate", experience: "1 year", isVerified: false };
+        return {
+          skill: item.trim(),
+          category: "Development",
+          description: "",
+          level: "Intermediate",
+          yearsExperience: "1 year",
+          tags: [],
+          isVerified: false,
+          verificationScore: 0,
+        };
       }
-      return item;
+      return {
+        skill: item.skill ? item.skill.trim() : "",
+        category: item.category || "Development",
+        description: item.description || "",
+        level: item.level || "Intermediate",
+        yearsExperience: item.yearsExperience || item.experience || "1 year",
+        tags: Array.isArray(item.tags) ? item.tags : [],
+        isVerified: !!item.isVerified,
+        verificationScore: item.verificationScore || 0,
+      };
     });
   }
   if (Array.isArray(this.learnSkills)) {
     this.learnSkills = this.learnSkills.map((item) => {
       if (typeof item === "string") {
-        return { skill: item, currentLevel: "Beginner", targetLevel: "Advanced" };
+        return {
+          skill: item.trim(),
+          category: "Development",
+          description: "",
+          currentLevel: "Beginner",
+          targetLevel: "Advanced",
+          tags: [],
+        };
       }
-      return item;
+      return {
+        skill: item.skill ? item.skill.trim() : "",
+        category: item.category || "Development",
+        description: item.description || "",
+        currentLevel: item.currentLevel || "Beginner",
+        targetLevel: item.targetLevel || "Advanced",
+        tags: Array.isArray(item.tags) ? item.tags : [],
+      };
     });
   }
 });
@@ -198,7 +266,15 @@ userSchema.methods.normalizeSkills = function () {
   if (Array.isArray(this.teachSkills)) {
     this.teachSkills = this.teachSkills.map((item) => {
       if (typeof item === "string") {
-        return { skill: item, level: "Intermediate", experience: "1 year", isVerified: false };
+        return {
+          skill: item.trim(),
+          category: "Development",
+          description: "",
+          level: "Intermediate",
+          yearsExperience: "1 year",
+          tags: [],
+          isVerified: false,
+        };
       }
       return item;
     });
@@ -206,7 +282,14 @@ userSchema.methods.normalizeSkills = function () {
   if (Array.isArray(this.learnSkills)) {
     this.learnSkills = this.learnSkills.map((item) => {
       if (typeof item === "string") {
-        return { skill: item, currentLevel: "Beginner", targetLevel: "Advanced" };
+        return {
+          skill: item.trim(),
+          category: "Development",
+          description: "",
+          currentLevel: "Beginner",
+          targetLevel: "Advanced",
+          tags: [],
+        };
       }
       return item;
     });

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
+import { formatApiError } from "../utils/auth";
 import "./Notifications.css";
 
 function Notifications() {
@@ -32,7 +33,7 @@ function Notifications() {
       setUnreadCount(data.unreadCount || 0);
     } catch (err) {
       console.error("Notifications error:", err);
-      setError("Unable to load notifications.");
+      setError(formatApiError(err));
     } finally {
       setLoading(false);
     }

@@ -1,9 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
-import { handleAuthError } from "../utils/auth";
+import { handleAuthError, formatApiError } from "../utils/auth";
+import RequestSwapModal from "../components/RequestSwapModal";
+import UserProfileModal from "../components/UserProfileModal";
+import ReportUserModal from "../components/ReportUserModal";
 import ScheduleSessionModal from "../components/ScheduleSessionModal";
 import "./FindMatches.css";
+
+const CATEGORIES = [
+  "All",
+  "Development",
+  "AI & Data Science",
+  "Design & UI/UX",
+  "Cloud & DevOps",
+  "Mobile Apps",
+  "Cybersecurity",
+  "Languages",
+];
 
 function FindMatches() {
   const navigate = useNavigate();
@@ -11,292 +25,439 @@ function FindMatches() {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all"); // "all" | "reciprocal" | "top"
 
-  // Schedule Modal State
+  // Search and Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedLevel, setSelectedLevel] = useState("All");
+  const [selectedMode, setSelectedMode] = useState("All");
+  const [selectedAvailability, setSelectedAvailability] = useState("All");
+  const [sortBy, setSortBy] = useState("score"); // "score" | "rating" | "sessions"
+  const [reciprocalOnly, setReciprocalOnly] = useState(false);
+
+  // Modal States
+  const [targetSwapUser, setTargetSwapUser] = useState(null);
+  const [targetProfileUserId, setTargetProfileUserId] = useState(null);
+  const [targetReportUser, setTargetReportUser] = useState(null);
   const [selectedPartnerForSchedule, setSelectedPartnerForSchedule] = useState(null);
 
-  useEffect(() => {
-    const fetchMatches = async () => {
-      try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          navigate("/login");
-          return;
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/users/matches`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (handleAuthError(response, navigate)) return;
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setError(data.message || "Failed to load matches");
-          return;
-        }
-
-        const rawList = Array.isArray(data) ? data : Array.isArray(data.matches) ? data.matches : [];
-
-        const normalized = rawList.map((item) => {
-          if (item.user) {
-            return item;
-          }
-          return {
-            user: item,
-            matchPercentage: 85,
-            isReciprocal: false,
-            canTeachMe: [],
-            canLearnFromMe: [],
-            explanation: "Compatible learning partner based on skills",
-          };
-        });
-
-        setMatches(normalized);
-        setError("");
-      } catch (err) {
-        console.error("Find Matches Error:", err);
-        setError("Unable to connect to the server");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMatches();
-  }, [navigate]);
-
-  const handleConnect = async (receiverId) => {
+  const fetchMatches = useCallback(async () => {
+    setLoading(true);
+    setError("");
     try {
       const token = localStorage.getItem("token");
-
       if (!token) {
         navigate("/login");
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/connections/${receiverId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.append("q", searchQuery.trim());
+      if (selectedCategory !== "All") params.append("category", selectedCategory);
+      if (selectedLevel !== "All") params.append("level", selectedLevel);
+      if (selectedMode !== "All") params.append("mode", selectedMode);
+      if (selectedAvailability !== "All") params.append("availability", selectedAvailability);
+      params.append("sortBy", sortBy);
+
+      const response = await fetch(`${API_BASE_URL}/api/users/matches?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const data = await response.json();
+      if (handleAuthError(response, navigate)) return;
 
+      const data = await response.json();
       if (!response.ok) {
-        alert(data.message || "Failed to send connection request");
-        return;
+        throw new Error(data.message || "Failed to load matches");
       }
 
-      alert("Connection request sent successfully! 🤝");
-    } catch (err) {
-      console.error("Connection Request Error:", err);
-      alert("Unable to connect to the server");
-    }
-  };
+      const rawList = Array.isArray(data) ? data : Array.isArray(data.matches) ? data.matches : [];
+      const normalized = rawList.map((item) => {
+        if (item.user) return item;
+        return {
+          user: item,
+          matchPercentage: 85,
+          isReciprocal: false,
+          canTeachMe: [],
+          canLearnFromMe: [],
+          explanation: "Active peer learner on the platform",
+        };
+      });
 
-  const filteredMatches = matches.filter((m) => {
-    if (activeFilter === "reciprocal") return m.isReciprocal;
-    if (activeFilter === "top") return (m.matchPercentage || 0) >= 80;
+      setMatches(normalized);
+    } catch (err) {
+      console.error("Find Matches Error:", err);
+      setError(formatApiError(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, selectedCategory, selectedLevel, selectedMode, selectedAvailability, sortBy, navigate]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchMatches();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [fetchMatches]);
+
+  const filteredList = matches.filter((m) => {
+    if (reciprocalOnly) return m.isReciprocal;
     return true;
   });
 
-  if (loading) {
-    return (
-      <div className="matches-page">
-        <div className="matches-container">
-          <div className="loading-state">
-            <h2>🤖 AI Matching Engine is analyzing peer skill graphs...</h2>
-            <p>Evaluating 6 compatibility factors: skill needs, reciprocal swap, proficiency level, availability, ratings, and career goals...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Highlight top 3 Best Matches
+  const bestMatches = filteredList.slice(0, 3);
 
   return (
     <div className="matches-page">
       <div className="matches-container">
-
+        
         {/* HEADER */}
-        <div className="matches-header">
+        <header className="matches-hero">
           <div className="ai-engine-chip">
-            <span>✨ 6-FACTOR DYNAMIC AI MATCH ENGINE</span>
+            <span>✨ 6-FACTOR INTELLIGENT MATCHING ENGINE</span>
           </div>
 
           <h1>
-            Discover Your <span className="gradient-text">Skill Swap Matches</span> 🤝
+            Discover Compatible <span className="gradient-text">Skill Partners</span> 🤝
           </h1>
 
           <p>
-            Dynamically calculated from your skill goals, experience level alignment, mutual availability, ratings, and career trajectory.
+            Real-time multi-dimensional matching based on skills you want to learn, skills they teach, mutual schedules, proficiency levels, and community ratings.
           </p>
-        </div>
+        </header>
 
-        {/* FILTER BAR */}
-        <div className="matches-filter-row">
-          <div className="filter-buttons">
-            <button
-              className={`filter-btn ${activeFilter === "all" ? "active" : ""}`}
-              onClick={() => setActiveFilter("all")}
-            >
-              All Matches ({matches.length})
-            </button>
-            <button
-              className={`filter-btn ${activeFilter === "reciprocal" ? "active" : ""}`}
-              onClick={() => setActiveFilter("reciprocal")}
-            >
-              ⭐ Reciprocal Swaps Only
-            </button>
-            <button
-              className={`filter-btn ${activeFilter === "top" ? "active" : ""}`}
-              onClick={() => setActiveFilter("top")}
-            >
-              🎯 Top 80%+ Compatibility
-            </button>
+        {/* SEARCH & ADVANCED FILTER BAR */}
+        <div className="discover-filter-card">
+          
+          <div className="search-input-row">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search by skill (e.g. React, Java, Python), name, or city..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button className="clear-search-btn" onClick={() => setSearchQuery("")}>
+                ✕
+              </button>
+            )}
           </div>
 
-          <div className="ai-tools-quicklinks">
-            <Link to="/roadmap" className="quick-ai-link">
-              🗺️ AI Roadmap
-            </Link>
-            <Link to="/resume-analyzer" className="quick-ai-link">
-              📄 Resume Gap
-            </Link>
+          <div className="filters-grid-row">
+            
+            <div className="filter-select-item">
+              <label>Category</label>
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-select-item">
+              <label>Skill Level</label>
+              <select value={selectedLevel} onChange={(e) => setSelectedLevel(e.target.value)}>
+                <option value="All">All Levels</option>
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+                <option value="Expert">Expert</option>
+              </select>
+            </div>
+
+            <div className="filter-select-item">
+              <label>Learning Mode</label>
+              <select value={selectedMode} onChange={(e) => setSelectedMode(e.target.value)}>
+                <option value="All">All Modes</option>
+                <option value="Online">Online Video / Chat</option>
+                <option value="Offline">In-Person</option>
+                <option value="Hybrid">Hybrid</option>
+              </select>
+            </div>
+
+            <div className="filter-select-item">
+              <label>Availability</label>
+              <select value={selectedAvailability} onChange={(e) => setSelectedAvailability(e.target.value)}>
+                <option value="All">Anytime</option>
+                <option value="Flexible">Flexible</option>
+                <option value="Weekdays">Weekdays</option>
+                <option value="Weekends">Weekends</option>
+                <option value="Evenings">Evenings</option>
+              </select>
+            </div>
+
+            <div className="filter-select-item">
+              <label>Sort By</label>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="score">✨ AI Match Score</option>
+                <option value="rating">⭐ Highest Rated</option>
+                <option value="sessions">📅 Most Sessions</option>
+              </select>
+            </div>
+
+            <div className="filter-toggle-box">
+              <button
+                type="button"
+                className={`toggle-reciprocal-btn ${reciprocalOnly ? "active" : ""}`}
+                onClick={() => setReciprocalOnly(!reciprocalOnly)}
+              >
+                {reciprocalOnly ? "✓ 2-Way Reciprocal Swaps" : "⭐ Reciprocal Swaps Only"}
+              </button>
+            </div>
+
           </div>
+
         </div>
 
-        {/* ERROR */}
-        {error && <div className="matches-error">{error}</div>}
-
-        {/* NO MATCHES */}
-        {!error && filteredMatches.length === 0 && (
-          <div className="no-matches">
-            <h2>No matches found in this category 😔</h2>
-            <p>
-              Update your skills and goals in your profile to discover more compatible partners!
-            </p>
-            <Link to="/profile" className="profile-update-btn">
-              👤 Update My Skills Profile
-            </Link>
+        {error && (
+          <div className="matches-error-banner">
+            <span>⚠️ {error}</span>
           </div>
         )}
 
-        {/* MATCHES GRID */}
-        <div className="matches-grid">
-          {filteredMatches.map((matchItem) => {
-            const user = matchItem.user || {};
-            const score = matchItem.matchPercentage || 85;
-            const isReciprocal = matchItem.isReciprocal;
-            const userInitials = user.name
-              ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-              : "U";
+        {/* BEST MATCHES FOR YOU CAROUSEL / SPOTLIGHT */}
+        {!loading && !error && bestMatches.length > 0 && (
+          <section className="best-matches-section">
+            <div className="section-title-row">
+              <span className="sparkle-icon">✨</span>
+              <h2>Best Matches For You</h2>
+              <span className="best-tag">Top AI Compatibility</span>
+            </div>
 
-            return (
-              <div className="match-card" key={user._id || user.id}>
-                
-                {/* TOP ROW */}
-                <div className="card-top-row">
-                  <div className="match-avatar">
-                    {userInitials}
+            <div className="best-matches-grid">
+              {bestMatches.map((m) => {
+                const u = m.user || {};
+                const initials = u.name ? u.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "U";
+                return (
+                  <div key={u._id || u.id} className="best-match-spotlight-card">
+                    <div className="spotlight-top">
+                      <div className="spotlight-avatar">
+                        {u.avatar ? <img src={u.avatar} alt={u.name} /> : initials}
+                      </div>
+                      <div className="spotlight-meta">
+                        <h3>{u.name}</h3>
+                        <p>{u.profession || u.careerGoal || "Software Developer"}</p>
+                        <span className="rating-pill">⭐ {(u.avgRating || 5.0).toFixed(1)}</span>
+                      </div>
+                      <div className="match-score-badge large">
+                        <span>{m.matchPercentage}%</span>
+                        <small>MATCH</small>
+                      </div>
+                    </div>
+
+                    <div className="spotlight-reason">
+                      <p>💡 {m.explanation}</p>
+                    </div>
+
+                    <div className="spotlight-skills-split">
+                      <div className="skill-col">
+                        <span className="col-lbl">Teaches:</span>
+                        <div className="tags-wrap">
+                          {u.teachSkills?.slice(0, 3).map((ts, idx) => (
+                            <span key={idx} className="teach-tag-mini">
+                              {typeof ts === "string" ? ts : ts.skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="skill-col">
+                        <span className="col-lbl">Wants:</span>
+                        <div className="tags-wrap">
+                          {u.learnSkills?.slice(0, 2).map((ls, idx) => (
+                            <span key={idx} className="learn-tag-mini">
+                              {typeof ls === "string" ? ls : ls.skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="spotlight-actions">
+                      <button
+                        className="btn-view-profile"
+                        onClick={() => setTargetProfileUserId(u._id || u.id)}
+                      >
+                        View Profile
+                      </button>
+                      <button
+                        className="btn-request-swap-glow"
+                        onClick={() => setTargetSwapUser(u)}
+                      >
+                        🤝 Propose Swap
+                      </button>
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
-                  <div className="user-details">
-                    <h2>{user.name}</h2>
-                    <div className="match-user-sub">
-                      <span className="user-role-badge">{user.careerGoal || "Developer"}</span>
-                      <span className="rating-tag">⭐ {(user.avgRating || 5.0).toFixed(1)}</span>
+        {/* ALL DISCOVER CARDS */}
+        <section className="all-matches-section">
+          <div className="section-title-row">
+            <h2>All Compatible Swappers ({filteredList.length})</h2>
+          </div>
+
+          {loading && (
+            <div className="matches-loading-card">
+              <span>🤖 AI Matching Engine calculating compatibility matrices...</span>
+            </div>
+          )}
+
+          {!loading && filteredList.length === 0 && (
+            <div className="no-matches-card">
+              <span className="no-match-icon">😔</span>
+              <h3>No skill swappers found with these filters</h3>
+              <p>Try clearing some search criteria or adding more skills in your profile!</p>
+              <Link to="/my-skills" className="profile-update-btn">
+                ⚙️ Update My Skills Portfolio
+              </Link>
+            </div>
+          )}
+
+          <div className="matches-cards-grid">
+            {filteredList.map((matchItem) => {
+              const u = matchItem.user || {};
+              const score = matchItem.matchPercentage || 80;
+              const isReciprocal = matchItem.isReciprocal;
+              const initials = u.name ? u.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "U";
+
+              return (
+                <div key={u._id || u.id} className="match-card-item">
+                  
+                  {/* CARD HEADER */}
+                  <div className="match-card-head">
+                    <div className="match-user-info">
+                      <div className="user-avatar-circle">
+                        {u.avatar ? <img src={u.avatar} alt={u.name} /> : initials}
+                      </div>
+                      <div>
+                        <h3>{u.name}</h3>
+                        <p className="user-role-text">{u.profession || u.careerGoal || "Developer"}</p>
+                        <div className="user-micro-badges">
+                          {u.location && <span className="location-pill">📍 {u.location}</span>}
+                          <span className="rating-pill">⭐ {(u.avgRating || 5.0).toFixed(1)}</span>
+                          <span className="mode-pill">{u.preferredMode || "Online"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="match-score-badge">
+                      <span>{score}%</span>
+                      <small>MATCH</small>
                     </div>
                   </div>
 
-                  <div className="score-capsule">
-                    <span className="score-value">{score}%</span>
-                    <span className="score-sub">COMPATIBILITY</span>
+                  {/* RECIPROCAL BADGE */}
+                  {isReciprocal && (
+                    <div className="reciprocal-ribbon">
+                      <span>⭐ 2-Way Reciprocal Skill Match</span>
+                    </div>
+                  )}
+
+                  {/* WHY THIS MATCH EXPLANATION */}
+                  <div className="why-match-reason-box">
+                    <span className="why-head">✓ Match Reasons:</span>
+                    <p>{matchItem.explanation}</p>
                   </div>
-                </div>
 
-                {/* RECIPROCAL BADGE */}
-                {isReciprocal && (
-                  <div className="reciprocal-badge">
-                    <span>⭐ 2-Way Reciprocal Swap Partner</span>
+                  {/* SHORT BIO */}
+                  {u.bio && <p className="card-bio-snippet">"{u.bio}"</p>}
+
+                  {/* TEACH SKILLS */}
+                  <div className="skills-block">
+                    <span className="skills-block-lbl">🎓 Can Teach:</span>
+                    <div className="skills-tags-cluster">
+                      {Array.isArray(u.teachSkills) && u.teachSkills.length > 0 ? (
+                        u.teachSkills.slice(0, 4).map((ts, idx) => {
+                          const name = typeof ts === "string" ? ts : ts.skill;
+                          const isVer = typeof ts === "object" && ts.isVerified;
+                          return (
+                            <span key={idx} className={`teach-tag ${isVer ? "verified" : ""}`}>
+                              {name} {isVer && "✓"}
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <span className="empty-tag">No skills listed</span>
+                      )}
+                    </div>
                   </div>
-                )}
 
-                {/* "WHY THIS MATCH?" BANNER */}
-                <div className="why-match-box">
-                  <span className="why-label">💡 Why this match:</span>
-                  <p className="why-text">{matchItem.explanation}</p>
-                </div>
-
-                {/* CAN TEACH */}
-                <div className="match-section">
-                  <h3>🎓 Can Teach You:</h3>
-                  <div className="match-skills">
-                    {Array.isArray(user.teachSkills) && user.teachSkills.length > 0 ? (
-                      user.teachSkills.map((item, index) => {
-                        const skillName = typeof item === "string" ? item : item.skill;
-                        const isVer = typeof item === "object" && item.isVerified;
-                        return (
-                          <span className={`teach-skill ${isVer ? "verified" : ""}`} key={index}>
-                            {skillName} {isVer && "✓"}
-                          </span>
-                        );
-                      })
-                    ) : (
-                      <span className="no-skill-text">No skills listed</span>
-                    )}
+                  {/* LEARN SKILLS */}
+                  <div className="skills-block">
+                    <span className="skills-block-lbl">📚 Wants to Learn:</span>
+                    <div className="skills-tags-cluster">
+                      {Array.isArray(u.learnSkills) && u.learnSkills.length > 0 ? (
+                        u.learnSkills.slice(0, 4).map((ls, idx) => {
+                          const name = typeof ls === "string" ? ls : ls.skill;
+                          return (
+                            <span key={idx} className="learn-tag">
+                              {name}
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <span className="empty-tag">No goals listed</span>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* WANTS TO LEARN */}
-                <div className="match-section">
-                  <h3>📚 Wants to Learn:</h3>
-                  <div className="match-skills">
-                    {Array.isArray(user.learnSkills) && user.learnSkills.length > 0 ? (
-                      user.learnSkills.map((item, index) => {
-                        const skillName = typeof item === "string" ? item : item.skill;
-                        return (
-                          <span className="learn-skill" key={index}>
-                            {skillName}
-                          </span>
-                        );
-                      })
-                    ) : (
-                      <span className="no-skill-text">No skills listed</span>
-                    )}
+                  {/* CARD ACTIONS */}
+                  <div className="match-card-actions">
+                    <button
+                      type="button"
+                      className="view-profile-btn"
+                      onClick={() => setTargetProfileUserId(u._id || u.id)}
+                    >
+                      View Profile
+                    </button>
+
+                    <button
+                      type="button"
+                      className="request-swap-btn"
+                      onClick={() => setTargetSwapUser(u)}
+                    >
+                      🤝 Request Swap
+                    </button>
                   </div>
+
                 </div>
+              );
+            })}
+          </div>
+        </section>
 
-                {/* BUTTONS ROW */}
-                <div className="match-card-actions-row">
-                  <button
-                    className="connect-btn"
-                    onClick={() => handleConnect(user._id || user.id)}
-                  >
-                    🤝 Connect
-                  </button>
-                  <button
-                    className="schedule-btn-shortcut"
-                    onClick={() => {
-                      setSelectedPartnerForSchedule(user);
-                    }}
-                  >
-                    📅 Schedule Session
-                  </button>
-                </div>
+        {/* MODALS */}
+        {targetSwapUser && (
+          <RequestSwapModal
+            isOpen={!!targetSwapUser}
+            onClose={() => setTargetSwapUser(null)}
+            targetUser={targetSwapUser}
+            onSuccess={() => fetchMatches()}
+          />
+        )}
 
-              </div>
-            );
-          })}
-        </div>
+        {targetProfileUserId && (
+          <UserProfileModal
+            isOpen={!!targetProfileUserId}
+            onClose={() => setTargetProfileUserId(null)}
+            userId={targetProfileUserId}
+            onRequestSwap={(user) => setTargetSwapUser(user)}
+            onReportUser={(user) => setTargetReportUser(user)}
+          />
+        )}
 
-        {/* SCHEDULE MODAL */}
+        {targetReportUser && (
+          <ReportUserModal
+            isOpen={!!targetReportUser}
+            onClose={() => setTargetReportUser(null)}
+            targetUser={targetReportUser}
+          />
+        )}
+
         {selectedPartnerForSchedule && (
           <ScheduleSessionModal
             isOpen={!!selectedPartnerForSchedule}

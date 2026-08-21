@@ -14,9 +14,27 @@ const connectionSchema = new mongoose.Schema(
       required: true,
     },
 
+    teachSkill: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    learnSkill: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    note: {
+      type: String,
+      default: "",
+      maxlength: 500,
+    },
+
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected"],
+      enum: ["pending", "accepted", "rejected", "cancelled", "completed"],
       default: "pending",
     },
 

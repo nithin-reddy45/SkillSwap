@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
-import { handleAuthError } from "../utils/auth";
+import { handleAuthError, formatApiError } from "../utils/auth";
 import ReviewModal from "../components/ReviewModal";
 import ScheduleSessionModal from "../components/ScheduleSessionModal";
 import "./Sessions.css";
@@ -52,7 +52,7 @@ function Sessions() {
       });
     } catch (err) {
       console.error("Sessions fetch error:", err);
-      setError(err.message || "Unable to load sessions.");
+      setError(formatApiError(err));
     } finally {
       setLoading(false);
     }
@@ -215,9 +215,26 @@ function Sessions() {
           </button>
         </div>
 
-        {error && <div className="sessions-error">{error}</div>}
-
-        {/* LOADING STATE */}
+        {error && (
+          <div className="sessions-error" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+            <span>⚠️ {error}</span>
+            <button 
+              onClick={() => { fetchSessions(); fetchConnections(); }}
+              style={{
+                background: "rgba(239, 68, 68, 0.2)",
+                border: "1px solid rgba(239, 68, 68, 0.4)",
+                color: "#fff",
+                padding: "6px 14px",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: "0.85rem"
+              }}
+            >
+              🔄 Retry Connection
+            </button>
+          </div>
+        )}
         {loading && (
           <div className="sessions-loading">
             <h2>📅 Loading your learning schedule...</h2>

@@ -19,6 +19,9 @@ import CodingTests from "./pages/CodingTests.jsx";
 import Courses from "./pages/Courses.jsx";
 
 import Dashboard from "./pages/Dashboard.jsx";
+import Onboarding from "./pages/Onboarding.jsx";
+import MySkills from "./pages/MySkills.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
 import FindMatches from "./pages/FindMatches.jsx";
 import Requests from "./pages/Requests.jsx";
 import Connections from "./pages/Connections.jsx";
@@ -93,6 +96,36 @@ function App() {
         {/* PROTECTED USER ROUTES */}
         {/* ========================= */}
 
+        {/* ONBOARDING */}
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* MY SKILLS PORTFOLIO */}
+        <Route
+          path="/my-skills"
+          element={
+            <ProtectedRoute>
+              <MySkills />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ADMIN DASHBOARD */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
         {/* DASHBOARD */}
         <Route
           path="/dashboard"
@@ -113,7 +146,7 @@ function App() {
           }
         />
 
-        {/* FIND MATCHES */}
+        {/* FIND MATCHES & DISCOVER */}
         <Route
           path="/matches"
           element={
@@ -121,6 +154,10 @@ function App() {
               <FindMatches />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/discover"
+          element={<Navigate to="/matches" replace />}
         />
         <Route
           path="/find-matches"

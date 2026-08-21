@@ -231,15 +231,40 @@ function Navbar() {
             className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
           >
             <span className="nav-icon">🔍</span>
-            <span>Find Matches</span>
+            <span>Discover</span>
           </NavLink>
+
+          {token && (
+            <NavLink
+              to="/my-skills"
+              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            >
+              <span className="nav-icon">⚙️</span>
+              <span>My Skills</span>
+            </NavLink>
+          )}
+
+          {token && (
+            <NavLink
+              to="/requests"
+              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            >
+              <span className="nav-icon">📬</span>
+              <span>Requests</span>
+              {requestCount > 0 && (
+                <span className="nav-pill-badge request-color">
+                  {requestCount > 99 ? "99+" : requestCount}
+                </span>
+              )}
+            </NavLink>
+          )}
 
           <NavLink
             to="/connections"
             className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
           >
             <span className="nav-icon">🤝</span>
-            <span>Connections</span>
+            <span>Swaps</span>
           </NavLink>
 
           <NavLink
@@ -329,6 +354,16 @@ function Navbar() {
             <span className="nav-icon">🏆</span>
             <span>Leaderboard</span>
           </NavLink>
+
+          {currentUser?.role === "admin" && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) => `nav-item admin-highlight ${isActive ? "active" : ""}`}
+            >
+              <span className="nav-icon">🛡️</span>
+              <span>Admin</span>
+            </NavLink>
+          )}
         </div>
 
         {/* RIGHT CONTROLS: NOTIFICATIONS, THEME TOGGLE, PROFILE / AUTH */}
@@ -400,6 +435,9 @@ function Navbar() {
                     <div className="dropdown-info">
                       <strong>{currentUser?.name || "SkillSwap User"}</strong>
                       <span>{currentUser?.email || "Signed In"}</span>
+                      {currentUser?.role === "admin" && (
+                        <span className="dropdown-admin-chip">ADMINISTRATOR</span>
+                      )}
                     </div>
                   </div>
 
@@ -408,18 +446,24 @@ function Navbar() {
                   <Link to="/profile" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
                     <span>👤</span> View & Edit Profile
                   </Link>
+                  <Link to="/my-skills" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
+                    <span>⚙️</span> My Skills Portfolio
+                  </Link>
                   <Link to="/dashboard" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
-                    <span>📊</span> Learning Dashboard
+                    <span>📊</span> Learning Progress Dashboard
                   </Link>
                   <Link to="/requests" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
-                    <span>📬</span> Connection Requests {requestCount > 0 && <span className="dropdown-mini-badge">{requestCount}</span>}
+                    <span>📬</span> Swap Requests {requestCount > 0 && <span className="dropdown-mini-badge">{requestCount}</span>}
                   </Link>
                   <Link to="/sessions" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
                     <span>📅</span> My Learning Sessions
                   </Link>
-                  <Link to="/notifications" className="dropdown-link" onClick={() => setIsProfileDropdownOpen(false)}>
-                    <span>🔔</span> Notifications Center
-                  </Link>
+
+                  {currentUser?.role === "admin" && (
+                    <Link to="/admin" className="dropdown-link admin-entry" onClick={() => setIsProfileDropdownOpen(false)}>
+                      <span>🛡️</span> Admin Dashboard
+                    </Link>
+                  )}
 
                   <div className="dropdown-divider" />
 

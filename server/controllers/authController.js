@@ -8,6 +8,34 @@ const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
+// Helper for formatting user object
+const formatUserPayload = (user) => ({
+  _id: user._id,
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role || "user",
+  avatar: user.avatar || "",
+  bio: user.bio || "",
+  location: user.location || "",
+  profession: user.profession || "",
+  interests: user.interests || [],
+  careerGoal: user.careerGoal || "Software Developer",
+  learningGoal: user.learningGoal || "",
+  availability: user.availability || "Flexible",
+  preferredMode: user.preferredMode || "Online",
+  avgRating: user.avgRating || 5.0,
+  completedSessionsCount: user.completedSessionsCount || 0,
+  verifiedSkills: user.verifiedSkills || [],
+  skillCredits: user.skillCredits !== undefined ? user.skillCredits : 5,
+  learningStreak: user.learningStreak || 1,
+  xp: user.xp || 150,
+  badges: user.badges || ["🏆 First Skill Swap"],
+  onboarded: !!user.onboarded,
+  teachSkills: user.teachSkills || [],
+  learnSkills: user.learnSkills || [],
+});
+
 // ==========================================
 // 1. REGISTER USER
 // ==========================================
@@ -46,9 +74,9 @@ const registerUser = async (req, res) => {
 
     const teachSkillsArray =
       typeof teachSkills === "string"
-        ? teachSkills.split(",").map((s) => ({ skill: s.trim(), level: "Intermediate", experience: "1 year" })).filter((s) => s.skill)
+        ? teachSkills.split(",").map((s) => ({ skill: s.trim(), level: "Intermediate", yearsExperience: "1 year" })).filter((s) => s.skill)
         : Array.isArray(teachSkills)
-        ? teachSkills.map((s) => (typeof s === "string" ? { skill: s, level: "Intermediate", experience: "1 year" } : s))
+        ? teachSkills.map((s) => (typeof s === "string" ? { skill: s, level: "Intermediate", yearsExperience: "1 year" } : s))
         : [];
 
     const learnSkillsArray =
@@ -58,16 +86,22 @@ const registerUser = async (req, res) => {
         ? learnSkills.map((s) => (typeof s === "string" ? { skill: s, currentLevel: "Beginner", targetLevel: "Advanced" } : s))
         : [];
 
+    // Automatically make first user or specific admin email an admin if desired
+    const userCount = await User.countDocuments({});
+    const role = userCount === 0 || trimmedEmail.includes("admin") ? "admin" : "user";
+
     const user = await User.create({
       name: name.trim(),
       email: trimmedEmail,
       password: hashedPassword,
+      role,
+      onboarded: false,
       teachSkills: teachSkillsArray,
       learnSkills: learnSkillsArray,
     });
 
     const token = jwt.sign(
-      { id: user._id, email: user.email },
+      { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -75,14 +109,7 @@ const registerUser = async (req, res) => {
     res.status(201).json({
       message: "User registered successfully",
       token,
-      user: {
-        _id: user._id,
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        teachSkills: user.teachSkills,
-        learnSkills: user.learnSkills,
-      },
+      user: formatUserPayload(user),
     });
   } catch (error) {
     res.status(500).json({
@@ -120,7 +147,7 @@ const loginUser = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.email },
+      { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -128,15 +155,7 @@ const loginUser = async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       token,
-      user: {
-        _id: user._id,
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar || "",
-        teachSkills: user.teachSkills,
-        learnSkills: user.learnSkills,
-      },
+      user: formatUserPayload(user),
     });
   } catch (error) {
     res.status(500).json({
@@ -161,9 +180,10 @@ const googleAuth = async (req, res) => {
     let user = await User.findOne({ email: cleanEmail });
 
     if (!user) {
-      // Create new user account via Google
       const randomPassword = Math.random().toString(36).slice(-10) + "Aa1!";
       const hashedPassword = await bcrypt.hash(randomPassword, 10);
+      const userCount = await User.countDocuments({});
+      const role = userCount === 0 || cleanEmail.includes("admin") ? "admin" : "user";
 
       user = await User.create({
         name: name?.trim() || cleanEmail.split("@")[0],
@@ -171,12 +191,14 @@ const googleAuth = async (req, res) => {
         password: hashedPassword,
         avatar: avatar || "",
         googleId: googleId || "",
+        role,
+        onboarded: false,
         bio: "SkillSwap member via Google sign-in.",
         teachSkills: [
-          { skill: "JavaScript", level: "Intermediate", experience: "1 year" },
+          { skill: "JavaScript", level: "Intermediate", yearsExperience: "1 year", category: "Development" },
         ],
         learnSkills: [
-          { skill: "Python", currentLevel: "Beginner", targetLevel: "Advanced" },
+          { skill: "Python", currentLevel: "Beginner", targetLevel: "Advanced", category: "Development" },
         ],
       });
     } else {
@@ -191,7 +213,7 @@ const googleAuth = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.email },
+      { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -199,15 +221,7 @@ const googleAuth = async (req, res) => {
     res.status(200).json({
       message: "Google sign-in successful! Welcome to SkillSwap AI.",
       token,
-      user: {
-        _id: user._id,
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar || "",
-        teachSkills: user.teachSkills,
-        learnSkills: user.learnSkills,
-      },
+      user: formatUserPayload(user),
     });
   } catch (error) {
     console.error("Google Auth Error:", error);
@@ -247,14 +261,14 @@ const forgotPassword = async (req, res) => {
       }
     );
 
-    // Dispatch email to the user's registered inbox
+    // Dispatch email to user's registered inbox
     await sendOTPEmail(user.email, user.name, otp);
 
     res.status(200).json({
       success: true,
       message: `A 6-digit password reset code has been sent to ${cleanEmail}. Please check your inbox and spam folder.`,
       email: cleanEmail,
-      otp, // Provided for instant verification & preview in development
+      otp, // Provided for instant testing in local environment
     });
   } catch (error) {
     console.error("Forgot Password Error:", error);

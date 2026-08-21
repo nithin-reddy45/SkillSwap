@@ -42,8 +42,13 @@ function Register() {
         return;
       }
 
-      alert("Registration successful! Please login.");
-      navigate("/login");
+      if (data.token && data.user) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        window.dispatchEvent(new Event("authChanged"));
+      }
+
+      navigate("/onboarding");
     } catch (error) {
       console.error("Registration Error:", error);
       alert("Unable to connect to the server");
